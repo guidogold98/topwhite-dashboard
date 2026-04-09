@@ -3,507 +3,394 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TOP WHITE — Dashboard de Ingresos 2026</title>
+<title>TOP WHITE — Dashboard 2026</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #0d0d0f; --surface: #16161a; --surface2: #1e1e24;
-    --border: rgba(255,255,255,0.07); --text: #f0eee8; --muted: #7c7b80;
-    --accent: #e8c87a; --green: #4ec994; --orange: #f5a623; --red: #f26b6b; --blue: #6fa8dc;
-  }
-  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-weight: 300; min-height: 100vh; overflow-x: hidden; }
-
-  /* Loading */
-  #loading {
-    position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column;
-    align-items: center; justify-content: center; z-index: 999; gap: 20px;
-  }
-  .load-logo { font-family: 'Playfair Display', serif; font-size: 32px; letter-spacing: 6px; color: var(--accent); }
-  .load-sub { font-size: 12px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); }
-  .spinner { width: 32px; height: 32px; border: 2px solid rgba(232,200,122,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .error-msg { font-size: 13px; color: var(--red); text-align: center; max-width: 400px; line-height: 1.6; display: none; }
-
-  /* Header */
-  .site-header {
-    padding: 36px 48px 28px; border-bottom: 1px solid var(--border);
-    display: flex; align-items: flex-end; justify-content: space-between;
-    background: linear-gradient(180deg, rgba(232,200,122,0.04) 0%, transparent 100%);
-  }
-  .brand { font-family: 'Playfair Display', serif; font-size: 26px; letter-spacing: 4px; color: var(--accent); }
-  .brand span { font-size: 12px; font-family: 'DM Sans', sans-serif; font-weight: 300; letter-spacing: 5px; color: var(--muted); display: block; margin-top: 4px; text-transform: uppercase; }
-  .header-right { text-align: right; }
-  .header-date { font-size: 12px; color: var(--muted); letter-spacing: 1px; }
-  .header-date strong { display: block; font-size: 13px; color: var(--text); font-weight: 500; margin-bottom: 2px; }
-  .refresh-btn {
-    margin-top: 8px; padding: 6px 14px; background: transparent; border: 1px solid var(--border);
-    border-radius: 6px; color: var(--muted); font-size: 11px; letter-spacing: 1px;
-    text-transform: uppercase; cursor: pointer; font-family: 'DM Sans', sans-serif;
-    transition: all 0.2s;
-  }
-  .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-  /* Tabs */
-  .tab-nav { display: flex; padding: 0 48px; background: var(--surface); border-bottom: 1px solid var(--border); }
-  .tab-btn {
-    padding: 15px 28px; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
-    letter-spacing: 1.5px; text-transform: uppercase; border: none; background: transparent;
-    color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s;
-  }
-  .tab-btn:hover { color: var(--text); }
-  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
-
-  /* Panels */
-  .dash-panel { display: none; padding: 36px 48px 60px; animation: fadeIn 0.3s ease; }
-  .dash-panel.active { display: block; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-
-  .dash-period { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--accent); margin-bottom: 28px; letter-spacing: 1px; }
-  .dash-period span { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 300; color: var(--muted); display: block; letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
-
-  /* KPIs */
-  .kpi-row { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; margin-bottom: 14px; }
-  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 18px; position: relative; overflow: hidden; }
-  .kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
-  .kpi.k-neutral::before { background: var(--blue); }
-  .kpi.k-green::before { background: var(--green); }
-  .kpi.k-orange::before { background: var(--orange); }
-  .kpi.k-red::before { background: var(--red); }
-  .kpi-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
-  .kpi-val { font-size: 30px; font-weight: 600; line-height: 1; margin-bottom: 4px; }
-  .kpi-val.k-green { color: var(--green); } .kpi-val.k-orange { color: var(--orange); }
-  .kpi-val.k-red { color: var(--red); } .kpi-val.k-blue { color: var(--blue); } .kpi-val.k-neutral { color: var(--text); }
-  .kpi-sub { font-size: 10px; color: var(--muted); }
-
-  .kpi-row2 { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; margin-bottom: 36px; }
-  .kpi2 { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; text-align: center; }
-  .kpi2-val { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
-  .kpi2-lbl { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
-
-  /* Charts */
-  .charts-row { display: grid; grid-template-columns: 1fr 2fr; gap: 18px; margin-bottom: 18px; }
-  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 22px; }
-  .chart-title { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
-  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px; }
-  .leg-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
-  .leg-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
-
-  /* Bottom row */
-  .bottom-row { display: grid; grid-template-columns: 1fr 300px; gap: 18px; }
-  .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 22px; overflow: hidden; }
-  .table-title { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
-  table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  thead th { font-weight: 500; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); padding: 0 8px 10px; border-bottom: 1px solid var(--border); text-align: left; }
-  thead th.r { text-align: right; }
-  tbody tr { border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.15s; }
-  tbody tr:hover { background: rgba(255,255,255,0.02); }
-  tbody tr:last-child { border-bottom: none; }
-  tbody td { padding: 8px 8px; color: var(--text); }
-  tbody td.r { text-align: right; color: var(--muted); font-size: 11px; }
-  .pct-wrap { display: flex; align-items: center; gap: 7px; justify-content: flex-end; }
-  .bar-bg { width: 50px; height: 3px; background: rgba(255,255,255,0.08); border-radius: 2px; flex-shrink: 0; }
-  .bar-fill { height: 3px; border-radius: 2px; }
-  .pct-lbl { font-size: 11px; font-weight: 600; min-width: 36px; text-align: right; }
-
-  .motivos-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 22px; }
-  .motivos-title { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
-  .motivo-item { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 12px; }
-  .motivo-item:last-child { border-bottom: none; }
-  .motivo-count { background: rgba(245,166,35,0.15); color: var(--orange); font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 20px; }
-  .motivo-total { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-size: 12px; font-weight: 500; color: var(--muted); }
-  .motivo-total span { color: var(--accent); font-size: 18px; font-weight: 600; }
-
-  .divider { height: 1px; background: var(--border); margin: 18px 0; }
-
-  @media (max-width: 900px) {
-    .site-header, .tab-nav, .dash-panel { padding-left: 20px; padding-right: 20px; }
-    .kpi-row, .kpi-row2 { grid-template-columns: repeat(2,1fr); }
-    .charts-row { grid-template-columns: 1fr; }
-    .bottom-row { grid-template-columns: 1fr; }
-  }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d0d0f;--surface:#16161a;--surface2:#1e1e24;--border:rgba(255,255,255,0.07);--text:#f0eee8;--muted:#7c7b80;--accent:#e8c87a;--green:#4ec994;--orange:#f5a623;--red:#f26b6b;--blue:#6fa8dc;--purple:#a78bfa;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;min-height:100vh;overflow-x:hidden}
+#loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:18px}
+.load-logo{font-family:'Playfair Display',serif;font-size:34px;letter-spacing:6px;color:var(--accent)}
+.load-sub{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted)}
+.spinner{width:30px;height:30px;border:2px solid rgba(232,200,122,0.15);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.err-msg{font-size:12px;color:var(--red);text-align:center;max-width:440px;line-height:1.7;display:none;padding:0 20px;white-space:pre-line}
+.site-header{padding:32px 48px 24px;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;justify-content:space-between;background:linear-gradient(180deg,rgba(232,200,122,0.04) 0%,transparent 100%)}
+.brand{font-family:'Playfair Display',serif;font-size:24px;letter-spacing:4px;color:var(--accent)}
+.brand span{font-size:11px;font-family:'DM Sans',sans-serif;font-weight:300;letter-spacing:5px;color:var(--muted);display:block;margin-top:3px;text-transform:uppercase}
+.header-right{text-align:right}
+.header-date{font-size:11px;color:var(--muted)}
+.header-date strong{display:block;font-size:12px;color:var(--text);font-weight:500;margin-bottom:2px}
+.refresh-btn{margin-top:8px;padding:5px 14px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.refresh-btn:hover{border-color:var(--accent);color:var(--accent)}
+.main-tabs{display:flex;padding:0 48px;background:var(--surface);border-bottom:1px solid var(--border)}
+.main-tab{padding:14px 28px;font-size:11px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;border:none;background:transparent;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;font-family:'DM Sans',sans-serif}
+.main-tab:hover{color:var(--text)}.main-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.panel{display:none;animation:fadeIn .3s ease}.panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.ing-tabs{display:flex;gap:4px;padding:20px 48px 0}
+.ing-tab{padding:7px 18px;font-size:10px;font-weight:500;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;border-radius:6px 6px 0 0;font-family:'DM Sans',sans-serif;transition:all .2s}
+.ing-tab.active{background:var(--surface);color:var(--accent);border-bottom-color:var(--surface)}
+.dash-sub{display:none;padding:24px 48px 48px}.dash-sub.active{display:block}
+.dash-period{font-family:'Playfair Display',serif;font-size:18px;color:var(--accent);margin-bottom:24px}
+.dash-period span{font-family:'DM Sans',sans-serif;font-size:10px;font-weight:300;color:var(--muted);display:block;letter-spacing:2px;text-transform:uppercase;margin-top:3px}
+.kpi-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:12px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 16px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.kn::before{background:var(--blue)}.kpi.kg::before{background:var(--green)}.kpi.ko::before{background:var(--orange)}.kpi.kr::before{background:var(--red)}
+.kpi-label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.kpi-val{font-size:26px;font-weight:600;line-height:1;margin-bottom:3px}
+.cg{color:var(--green)}.co{color:var(--orange)}.cr{color:var(--red)}.cb{color:var(--blue)}.cn{color:var(--text)}.ca{color:var(--accent)}.cp{color:var(--purple)}
+.kpi-sub{font-size:10px;color:var(--muted)}
+.kpi-row2{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:28px}
+.kpi2{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;text-align:center}
+.kpi2-val{font-size:20px;font-weight:600;margin-bottom:3px}.kpi2-lbl{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.charts-row{display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-bottom:16px}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+.chart-title{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted)}
+.leg-dot{width:7px;height:7px;border-radius:2px;flex-shrink:0}
+.bottom-row{display:grid;grid-template-columns:1fr 280px;gap:16px}
+.table-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;overflow:hidden}
+.table-title{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead th{font-weight:500;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:0 7px 8px;border-bottom:1px solid var(--border);text-align:left}
+thead th.r{text-align:right}
+tbody tr{border-bottom:1px solid rgba(255,255,255,0.03);transition:background .15s}
+tbody tr:hover{background:rgba(255,255,255,0.02)}
+tbody tr:last-child{border-bottom:none}
+tbody td{padding:7px 7px;color:var(--text)}
+tbody td.r{text-align:right;color:var(--muted);font-size:10px}
+.pct-wrap{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+.bar-bg{width:44px;height:3px;background:rgba(255,255,255,0.07);border-radius:2px;flex-shrink:0}
+.bar-fill{height:3px;border-radius:2px}
+.pct-lbl{font-size:10px;font-weight:600;min-width:32px;text-align:right}
+.motivos-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+.motivos-title{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+.motivo-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:11px}
+.motivo-item:last-child{border-bottom:none}
+.motivo-count{background:rgba(245,166,35,0.15);color:var(--orange);font-size:10px;font-weight:600;padding:2px 9px;border-radius:20px}
+.motivo-total{margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+.motivo-total span{color:var(--accent);font-size:16px;font-weight:600}
+#panel-com{padding:32px 48px 60px}
+.com-title{font-family:'Playfair Display',serif;font-size:18px;color:var(--accent);margin-bottom:6px}
+.com-sub{font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:28px}
+.val-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:24px}
+.val-kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;position:relative;overflow:hidden}
+.val-kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.val-kpi .v{font-size:17px;font-weight:600;margin-bottom:4px}
+.val-kpi .l{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+.val-kpi .p{font-size:10px;margin-top:3px}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:16px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.week-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.week-nav-title{font-size:11px;font-weight:500;color:var(--accent);letter-spacing:1px}
+.week-btns{display:flex;gap:5px;flex-wrap:wrap}
+.week-btn{padding:4px 10px;font-size:9px;letter-spacing:.5px;text-transform:uppercase;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;border-radius:5px;font-family:'DM Sans',sans-serif;transition:all .2s}
+.week-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(232,200,122,0.07)}
+.g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}
+.wd-kpi{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center}
+.wd-kpi .v{font-size:18px;font-weight:600;margin-bottom:3px}
+.wd-kpi .l{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:500;letter-spacing:.5px}
+.b-ing{background:rgba(78,201,148,.15);color:var(--green)}
+.b-pend{background:rgba(245,166,35,.12);color:var(--orange)}
+.b-dem{background:rgba(242,107,107,.15);color:var(--red)}
+@media(max-width:900px){
+  .site-header,.main-tabs,.dash-sub,#panel-com{padding-left:16px;padding-right:16px}
+  .kpi-row,.kpi-row2,.val-kpis,.g4{grid-template-columns:repeat(2,1fr)}
+  .charts-row,.g3,.g2,.bottom-row{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
-
 <div id="loading">
   <div class="load-logo">TOP WHITE</div>
   <div class="spinner"></div>
-  <div class="load-sub">Cargando planilla de producción...</div>
-  <div class="error-msg" id="err-msg"></div>
+  <div class="load-sub" id="load-sub">Cargando datos...</div>
+  <div class="err-msg" id="err-msg"></div>
 </div>
-
 <div id="app" style="display:none">
   <header class="site-header">
-    <div>
-      <div class="brand">TOP WHITE<span>Dashboard de Ingresos 2026</span></div>
-    </div>
+    <div class="brand">TOP WHITE<span>Dashboard de Producción 2026</span></div>
     <div class="header-right">
       <div class="header-date"><strong>Última actualización</strong><span id="last-update">—</span></div>
-      <button class="refresh-btn" onclick="loadData()">↻ Actualizar datos</button>
+      <button class="refresh-btn" onclick="loadData()">↻ Actualizar</button>
     </div>
   </header>
-
-  <nav class="tab-nav">
-    <button class="tab-btn active" onclick="showTab('d1',this)">Marzo – Abril</button>
-    <button class="tab-btn" onclick="showTab('d2',this)">Mayo – Junio – Julio</button>
+  <nav class="main-tabs">
+    <button class="main-tab active" onclick="showMain('panel-ing',this)">📦 Ingresos</button>
+    <button class="main-tab" onclick="showMain('panel-com',this)">💰 Comercial</button>
   </nav>
 
-  <!-- DASHBOARD 1 -->
-  <section class="dash-panel active" id="d1">
-    <div class="dash-period">Marzo – Abril 2026<span>Temporada actual</span></div>
-    <div class="kpi-row">
-      <div class="kpi k-neutral"><div class="kpi-label">Total artículos</div><div class="kpi-val k-neutral" id="d1-total-arts">—</div><div class="kpi-sub">artículos únicos</div></div>
-      <div class="kpi k-neutral"><div class="kpi-label">Unidades totales</div><div class="kpi-val k-neutral" id="d1-total-uds">—</div><div class="kpi-sub">unidades planificadas</div></div>
-      <div class="kpi k-green"><div class="kpi-label">✓ Ingresadas</div><div class="kpi-val k-green" id="d1-ing-uds">—</div><div class="kpi-sub">unidades</div></div>
-      <div class="kpi k-orange"><div class="kpi-label">⏳ Pendientes</div><div class="kpi-val k-orange" id="d1-pend-uds">—</div><div class="kpi-sub">unidades</div></div>
+  <!-- INGRESOS -->
+  <div class="panel active" id="panel-ing">
+    <div class="ing-tabs">
+      <button class="ing-tab active" onclick="showDash('ds1',this)">Marzo – Abril</button>
+      <button class="ing-tab" onclick="showDash('ds2',this)">Mayo – Junio – Julio</button>
     </div>
-    <div class="kpi-row2">
-      <div class="kpi2"><div class="kpi2-val" id="d1-pct-arts" style="color:var(--green)">—</div><div class="kpi2-lbl">% artículos ingresados</div></div>
-      <div class="kpi2"><div class="kpi2-val" id="d1-pct-uds" style="color:var(--green)">—</div><div class="kpi2-lbl">% unidades ingresadas</div></div>
-      <div class="kpi2"><div class="kpi2-val" id="d1-motivo-arts" style="color:var(--orange)">—</div><div class="kpi2-lbl">⚠ con motivo de atraso</div></div>
-      <div class="kpi2"><div class="kpi2-val" id="d1-pni-uds" style="color:var(--red)">—</div><div class="kpi2-lbl">probable no ingreso (uds)</div></div>
-    </div>
-    <div class="charts-row">
-      <div class="chart-card">
-        <div class="chart-title">Estado de unidades</div>
-        <div style="position:relative;height:180px"><canvas id="d1-donut"></canvas></div>
-        <div class="legend" id="d1-donut-legend"></div>
+    <div class="dash-sub active" id="ds1">
+      <div class="dash-period">Marzo – Abril 2026<span>Temporada actual</span></div>
+      <div class="kpi-row">
+        <div class="kpi kn"><div class="kpi-label">Total artículos</div><div class="kpi-val cn" id="d1-ta">—</div><div class="kpi-sub">artículos únicos</div></div>
+        <div class="kpi kn"><div class="kpi-label">Unidades totales</div><div class="kpi-val cn" id="d1-tu">—</div><div class="kpi-sub">planificadas</div></div>
+        <div class="kpi kg"><div class="kpi-label">✓ Ingresadas</div><div class="kpi-val cg" id="d1-iu">—</div><div class="kpi-sub">unidades</div></div>
+        <div class="kpi ko"><div class="kpi-label">⏳ Pendientes</div><div class="kpi-val co" id="d1-pu">—</div><div class="kpi-sub">unidades</div></div>
       </div>
-      <div class="chart-card">
-        <div class="chart-title">Ingresadas vs. total por tipología</div>
-        <div style="position:relative;height:180px"><canvas id="d1-bar"></canvas></div>
+      <div class="kpi-row2">
+        <div class="kpi2"><div class="kpi2-val" id="d1-pa">—</div><div class="kpi2-lbl">% arts ingresados</div></div>
+        <div class="kpi2"><div class="kpi2-val" id="d1-pu2">—</div><div class="kpi2-lbl">% uds ingresadas</div></div>
+        <div class="kpi2"><div class="kpi2-val co" id="d1-am">—</div><div class="kpi2-lbl">⚠ con motivo atraso</div></div>
+        <div class="kpi2"><div class="kpi2-val cr" id="d1-pni">—</div><div class="kpi2-lbl">probable no ingreso (uds)</div></div>
       </div>
-    </div>
-    <div class="chart-card" style="margin-bottom:20px">
-      <div class="chart-title">% ingreso por tipología</div>
-      <div style="position:relative" id="d1-hbar-wrap"><canvas id="d1-hbar"></canvas></div>
-    </div>
-    <div class="bottom-row">
-      <div class="table-card">
-        <div class="table-title">Detalle por tipología</div>
-        <table><thead><tr><th>Tipología</th><th class="r">Arts</th><th class="r">Uds tot.</th><th class="r">Uds ing.</th><th class="r">% Total</th></tr></thead>
-        <tbody id="d1-tabla"></tbody></table>
+      <div class="charts-row">
+        <div class="chart-card"><div class="chart-title">Estado de unidades</div><div style="position:relative;height:170px"><canvas id="d1-donut"></canvas></div><div class="legend" id="d1-leg"></div></div>
+        <div class="chart-card"><div class="chart-title">Ingresadas vs. total por tipología</div><div style="position:relative;height:170px"><canvas id="d1-bar"></canvas></div></div>
       </div>
-      <div class="motivos-card">
-        <div class="motivos-title">Motivos de atraso</div>
-        <div id="d1-motivos"></div>
+      <div class="chart-card" style="margin-bottom:18px"><div class="chart-title">% ingreso por tipología</div><div style="position:relative" id="d1-hw"><canvas id="d1-hbar"></canvas></div></div>
+      <div class="bottom-row">
+        <div class="table-card"><div class="table-title">Detalle por tipología</div>
+          <table><thead><tr><th>Tipología</th><th class="r">Arts</th><th class="r">Uds tot.</th><th class="r">Uds ing.</th><th class="r">% Total</th></tr></thead><tbody id="d1-tbl"></tbody></table>
+        </div>
+        <div class="motivos-card"><div class="motivos-title">Motivos de atraso</div><div id="d1-mot"></div></div>
       </div>
     </div>
-  </section>
+    <div class="dash-sub" id="ds2">
+      <div class="dash-period">Mayo – Junio – Julio 2026<span>Próxima temporada</span></div>
+      <div class="kpi-row">
+        <div class="kpi kn"><div class="kpi-label">Total artículos</div><div class="kpi-val cn" id="d2-ta">—</div><div class="kpi-sub">artículos únicos</div></div>
+        <div class="kpi kn"><div class="kpi-label">Unidades totales</div><div class="kpi-val cn" id="d2-tu">—</div><div class="kpi-sub">planificadas</div></div>
+        <div class="kpi kg"><div class="kpi-label">✓ Ingresadas</div><div class="kpi-val cg" id="d2-iu">—</div><div class="kpi-sub">unidades</div></div>
+        <div class="kpi ko"><div class="kpi-label">⏳ Pendientes</div><div class="kpi-val co" id="d2-pu">—</div><div class="kpi-sub">unidades</div></div>
+      </div>
+      <div class="kpi-row2">
+        <div class="kpi2"><div class="kpi2-val" id="d2-pa">—</div><div class="kpi2-lbl">% arts ingresados</div></div>
+        <div class="kpi2"><div class="kpi2-val" id="d2-pu2">—</div><div class="kpi2-lbl">% uds ingresadas</div></div>
+        <div class="kpi2"><div class="kpi2-val cr" id="d2-am">—</div><div class="kpi2-lbl">⚠ con motivo atraso</div></div>
+        <div class="kpi2"><div class="kpi2-val cr" id="d2-pni">—</div><div class="kpi2-lbl">probable no ingreso (uds)</div></div>
+      </div>
+      <div class="charts-row">
+        <div class="chart-card"><div class="chart-title">Estado de unidades</div><div style="position:relative;height:170px"><canvas id="d2-donut"></canvas></div><div class="legend" id="d2-leg"></div></div>
+        <div class="chart-card"><div class="chart-title">Ingresadas vs. total por tipología</div><div style="position:relative;height:170px"><canvas id="d2-bar"></canvas></div></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:18px"><div class="chart-title">% ingreso por tipología</div><div style="position:relative" id="d2-hw"><canvas id="d2-hbar"></canvas></div></div>
+      <div class="bottom-row">
+        <div class="table-card"><div class="table-title">Detalle por tipología</div>
+          <table><thead><tr><th>Tipología</th><th class="r">Arts</th><th class="r">Uds tot.</th><th class="r">Uds ing.</th><th class="r">% Total</th></tr></thead><tbody id="d2-tbl"></tbody></table>
+        </div>
+        <div class="motivos-card"><div class="motivos-title">Motivos de atraso</div><div id="d2-mot"></div></div>
+      </div>
+    </div>
+  </div>
 
-  <!-- DASHBOARD 2 -->
-  <section class="dash-panel" id="d2">
-    <div class="dash-period">Mayo – Junio – Julio 2026<span>Próxima temporada</span></div>
-    <div class="kpi-row">
-      <div class="kpi k-neutral"><div class="kpi-label">Total artículos</div><div class="kpi-val k-neutral" id="d2-total-arts">—</div><div class="kpi-sub">artículos únicos</div></div>
-      <div class="kpi k-neutral"><div class="kpi-label">Unidades totales</div><div class="kpi-val k-neutral" id="d2-total-uds">—</div><div class="kpi-sub">unidades planificadas</div></div>
-      <div class="kpi k-green"><div class="kpi-label">✓ Ingresadas</div><div class="kpi-val k-green" id="d2-ing-uds">—</div><div class="kpi-sub">unidades</div></div>
-      <div class="kpi k-orange"><div class="kpi-label">⏳ Pendientes</div><div class="kpi-val k-orange" id="d2-pend-uds">—</div><div class="kpi-sub">unidades</div></div>
+  <!-- COMERCIAL -->
+  <div class="panel" id="panel-com">
+    <div class="com-title">Comercial — Ingresos Valorizados</div>
+    <div class="com-sub">Estado sincronizado con planilla de producción · Retail · Web · Mayorista</div>
+    <div class="val-kpis" id="com-global-kpis"></div>
+    <div class="g3">
+      <div class="chart-card"><div class="chart-title">$ total — ingresado vs pendiente</div><div style="position:relative;height:200px"><canvas id="com-donut-total"></canvas></div><div class="legend" id="com-donut-leg"></div></div>
+      <div class="chart-card"><div class="chart-title">$ por canal — ingresado</div><div style="position:relative;height:200px"><canvas id="com-canal-ing"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">$ por canal — pendiente</div><div style="position:relative;height:200px"><canvas id="com-canal-pend"></canvas></div></div>
     </div>
-    <div class="kpi-row2">
-      <div class="kpi2"><div class="kpi2-val" id="d2-pct-arts" style="color:var(--orange)">—</div><div class="kpi2-lbl">% artículos ingresados</div></div>
-      <div class="kpi2"><div class="kpi2-val" id="d2-pct-uds" style="color:var(--orange)">—</div><div class="kpi2-lbl">% unidades ingresadas</div></div>
-      <div class="kpi2"><div class="kpi2-val" id="d2-motivo-arts" style="color:var(--red)">—</div><div class="kpi2-lbl">⚠ con motivo de atraso</div></div>
-      <div class="kpi2"><div class="kpi2-val" id="d2-pni-uds" style="color:var(--red)">—</div><div class="kpi2-lbl">probable no ingreso (uds)</div></div>
+    <div class="g2">
+      <div class="chart-card"><div class="chart-title">$ ingresado vs pendiente por tipología</div><div style="position:relative;height:240px"><canvas id="com-tipo"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">$ ingresado vs pendiente por semana</div><div style="position:relative;height:240px"><canvas id="com-semana"></canvas></div></div>
     </div>
-    <div class="charts-row">
-      <div class="chart-card">
-        <div class="chart-title">Estado de unidades</div>
-        <div style="position:relative;height:180px"><canvas id="d2-donut"></canvas></div>
-        <div class="legend" id="d2-donut-legend"></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Ingresadas vs. total por tipología</div>
-        <div style="position:relative;height:180px"><canvas id="d2-bar"></canvas></div>
-      </div>
+    <div class="week-nav">
+      <div class="week-nav-title">Detalle semanal</div>
+      <div class="week-btns" id="week-btns"></div>
     </div>
-    <div class="chart-card" style="margin-bottom:20px">
-      <div class="chart-title">% ingreso por tipología</div>
-      <div style="position:relative" id="d2-hbar-wrap"><canvas id="d2-hbar"></canvas></div>
+    <div class="g4" id="week-kpis"></div>
+    <div class="g2">
+      <div class="chart-card"><div class="chart-title">$ por canal esta semana</div><div style="position:relative;height:200px"><canvas id="wk-canal"></canvas></div><div class="legend" id="wk-canal-leg"></div></div>
+      <div class="chart-card"><div class="chart-title">$ ingresado vs pendiente por artículo</div><div style="position:relative" id="wk-art-wrap"><canvas id="wk-art"></canvas></div></div>
     </div>
-    <div class="bottom-row">
-      <div class="table-card">
-        <div class="table-title">Detalle por tipología</div>
-        <table><thead><tr><th>Tipología</th><th class="r">Arts</th><th class="r">Uds tot.</th><th class="r">Uds ing.</th><th class="r">% Total</th></tr></thead>
-        <tbody id="d2-tabla"></tbody></table>
-      </div>
-      <div class="motivos-card">
-        <div class="motivos-title">Motivos de atraso</div>
-        <div id="d2-motivos"></div>
-      </div>
+    <div class="table-card"><div class="table-title">Artículos de la semana</div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Artículo</th><th>Tipo</th><th class="r">Cant</th><th class="r">Retail</th><th class="r">Web</th><th class="r">Mayor.</th><th class="r">PVP</th><th class="r">P.Mayor</th><th class="r">$ Retail</th><th class="r">$ Web</th><th class="r">$ Mayor</th><th class="r">$ Total</th><th>Estado</th></tr></thead>
+        <tbody id="com-week-tbl"></tbody>
+      </table></div>
     </div>
-  </section>
+  </div>
 </div>
 
 <script>
-const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS_fXzIA61ZfjGgAKU_lbcYy4JapY2hIvVBkL62Wq_3mdpiGCk3wUAqD56EZSTEBdSttWC7Y7mBsImL/pub?gid=169481499&single=true&output=csv';
+const PROD_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vS_fXzIA61ZfjGgAKU_lbcYy4JapY2hIvVBkL62Wq_3mdpiGCk3wUAqD56EZSTEBdSttWC7Y7mBsImL/pub?gid=169481499&single=true&output=csv';
+const COM_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vQwGx8ZZQ3xuQ5ZF7oovV_SNlHb4I-kMj8Autu8UXH6IvZ5LBR88lgw5jg20SHxUg/pub?gid=585095183&single=true&output=csv';
+const PROXY='https://corsproxy.io/?';
+const TIPOS=['TOP','BODY','SHORT','MINI','PANTALON','PANTALÓN','VESTIDO','SET','CORSET','BUZO','SWEATER','REMERA','CAMISA','BERMUDA','BLAZER'];
+function getTipo(n){if(!n)return'OTRO';const u=n.toUpperCase();for(const t of TIPOS){if(u.startsWith(t))return t==='PANTALÓN'?'PANTALON':t}return'OTRO'}
+function fmtN(n){return Math.round(n).toLocaleString('es-AR')}
+function fmtM(n){if(n>=1e9)return'$'+Math.round(n/1e9*10)/10+'B';if(n>=1e6)return'$'+Math.round(n/1e6*10)/10+'M';if(n>=1e3)return'$'+Math.round(n/1e3)+'K';return'$'+Math.round(n)}
+function pctColor(p){return p>=80?'#4ec994':p>=50?'#f5a623':'#f26b6b'}
+const CH={};let APP={};let curWeek=0;
 
-const TIPOLOGIAS = ['TOP','BODY','SHORT','MINI','PANTALON','PANTALÓN','VESTIDO','SET','CORSET','BUZO','SWEATER','REMERA','CAMISA','BERMUDA','BLAZER','CHALECO','MUSCULOSA','FALDA','SACO','ENTERITO'];
-
-const CHARTS = {};
-
-function getTipo(nombre) {
-  if (!nombre) return 'OTRO';
-  const n = nombre.toUpperCase();
-  for (const t of TIPOLOGIAS) {
-    if (n.startsWith(t)) return t === 'PANTALÓN' ? 'PANTALON' : t;
+function parseProd(rows){
+  let hi=-1;
+  for(let i=0;i<rows.length;i++){if(rows[i][7]&&rows[i][7].toString().toUpperCase().includes('NOMBRE')){hi=i;break}}
+  if(hi<0)hi=1;
+  const data=rows.slice(hi+1).filter(r=>r[0]&&r[0].toString().trim());
+  const codStatus={};
+  data.forEach(r=>{const cod=r[6]?.toString().trim();if(cod)codStatus[cod]=r[1]?.toString().toUpperCase().trim()||''});
+  function buildDash(meses){
+    const d=data.filter(r=>meses.includes(r[0]?.toString().toUpperCase().trim()));
+    const totalArts=new Set(d.map(r=>r[6]).filter(Boolean)).size;
+    const totalUds=d.reduce((s,r)=>s+(parseFloat(r[8])||0),0);
+    const ing=d.filter(r=>r[1]?.toString().toUpperCase().trim()==='INGRESADO');
+    const pni=d.filter(r=>r[1]?.toString().toUpperCase().includes('PROBABLE'));
+    const ingUds=ing.reduce((s,r)=>s+(parseFloat(r[8])||0),0);
+    const pniUds=pni.reduce((s,r)=>s+(parseFloat(r[8])||0),0);
+    const pendUds=totalUds-ingUds-pniUds;
+    const ingArts=new Set(ing.map(r=>r[6]).filter(Boolean)).size;
+    const motMap={};
+    d.forEach(r=>{[r[50],r[51]].forEach(m=>{if(m&&m.toString().trim()){const k=m.toString().trim();motMap[k]=(motMap[k]||0)+1}})});
+    const artsMot=new Set(d.filter(r=>(r[50]&&r[50].toString().trim())||(r[51]&&r[51].toString().trim())).map(r=>r[6])).size;
+    const tipoMap={};
+    d.forEach(r=>{const t=getTipo(r[7]);if(!tipoMap[t])tipoMap[t]={tipo:t,arts:new Set(),tot:0,ing:0};tipoMap[t].arts.add(r[6]);tipoMap[t].tot+=parseFloat(r[8])||0;if(r[1]?.toString().toUpperCase().trim()==='INGRESADO')tipoMap[t].ing+=parseFloat(r[8])||0});
+    const tipos=Object.values(tipoMap).map(v=>({tipo:v.tipo,arts:v.arts.size,uds_tot:Math.round(v.tot),uds_ing:Math.round(v.ing),pct:v.tot>0?Math.round(v.ing/v.tot*1000)/10:0})).sort((a,b)=>b.uds_tot-a.uds_tot);
+    return{totalArts,totalUds:Math.round(totalUds),ingUds:Math.round(ingUds),pendUds:Math.round(pendUds),pniUds:Math.round(pniUds),ingArts,pctArts:totalArts>0?Math.round(ingArts/totalArts*1000)/10:0,pctUds:totalUds>0?Math.round(ingUds/totalUds*1000)/10:0,artsMotivoCount:artsMot,motivos:motMap,tipologias:tipos};
   }
-  return 'OTRO';
+  return{d1:buildDash(['MARZO','ABRIL']),d2:buildDash(['MAYO','JUNIO','JULIO']),codStatus};
 }
 
-function fmtN(n) { return Math.round(n).toLocaleString('es-AR'); }
-
-function pctColor(p) {
-  if (p >= 80) return '#4ec994';
-  if (p >= 50) return '#f5a623';
-  return '#f26b6b';
-}
-
-function processData(rows) {
-  // Find header row (row with "INGRESO" in col0)
-  let headerIdx = -1;
-  for (let i = 0; i < rows.length; i++) {
-    if (rows[i][0] && rows[i][0].toString().toUpperCase().includes('INGRESO') && rows[i][7] && rows[i][7].toString().toUpperCase().includes('NOMBRE')) {
-      headerIdx = i; break;
-    }
-  }
-  if (headerIdx === -1) headerIdx = 1;
-
-  const data = rows.slice(headerIdx + 1).filter(r => r[0] && r[0].toString().trim());
-
-  const result = {};
-  const groups = { d1: ['MARZO','ABRIL'], d2: ['MAYO','JUNIO','JULIO'] };
-
-  for (const [key, meses] of Object.entries(groups)) {
-    const d = data.filter(r => meses.includes(r[0].toString().toUpperCase().trim()));
-    const totalArts = new Set(d.map(r=>r[6]).filter(Boolean)).size;
-    const totalUds = d.reduce((s,r) => s + (parseFloat(r[8])||0), 0);
-    const ingRows = d.filter(r => r[1] && r[1].toString().toUpperCase().trim() === 'INGRESADO');
-    const pniRows = d.filter(r => r[1] && r[1].toString().toUpperCase().includes('PROBABLE'));
-    const ingUds = ingRows.reduce((s,r) => s + (parseFloat(r[8])||0), 0);
-    const pniUds = pniRows.reduce((s,r) => s + (parseFloat(r[8])||0), 0);
-    const pendUds = totalUds - ingUds - pniUds;
-    const ingArts = new Set(ingRows.map(r=>r[6]).filter(Boolean)).size;
-
-    // Motivos (cols 50 and 51 = index 50,51)
-    const motivosMap = {};
-    d.forEach(r => {
-      [r[50], r[51]].forEach(m => {
-        if (m && m.toString().trim()) {
-          const k = m.toString().trim();
-          motivosMap[k] = (motivosMap[k]||0) + 1;
-        }
-      });
-    });
-    const artsMotivoSet = new Set(d.filter(r => (r[50]&&r[50].toString().trim()) || (r[51]&&r[51].toString().trim())).map(r=>r[6]));
-
-    // Tipologías
-    const tipoMap = {};
-    d.forEach(r => {
-      const tipo = getTipo(r[7]);
-      if (!tipoMap[tipo]) tipoMap[tipo] = {tipo, artsSet: new Set(), uds_tot:0, uds_ing:0};
-      tipoMap[tipo].artsSet.add(r[6]);
-      tipoMap[tipo].uds_tot += parseFloat(r[8])||0;
-      if (r[1] && r[1].toString().toUpperCase().trim() === 'INGRESADO')
-        tipoMap[tipo].uds_ing += parseFloat(r[8])||0;
-    });
-    const tipologias = Object.values(tipoMap).map(t => ({
-      tipo: t.tipo, arts: t.artsSet.size,
-      uds_tot: Math.round(t.uds_tot), uds_ing: Math.round(t.uds_ing),
-      pct: t.uds_tot > 0 ? Math.round(t.uds_ing/t.uds_tot*1000)/10 : 0
-    })).sort((a,b) => b.uds_tot - a.uds_tot);
-
-    result[key] = {
-      totalArts, totalUds: Math.round(totalUds),
-      ingUds: Math.round(ingUds), pendUds: Math.round(pendUds), pniUds: Math.round(pniUds),
-      pctArts: totalArts > 0 ? Math.round(ingArts/totalArts*1000)/10 : 0,
-      pctUds: totalUds > 0 ? Math.round(ingUds/totalUds*1000)/10 : 0,
-      artsMotivoCount: artsMotivoSet.size,
-      motivos: motivosMap, tipologias
-    };
-  }
-  return result;
-}
-
-function renderKPIs(prefix, d) {
-  document.getElementById(`${prefix}-total-arts`).textContent = fmtN(d.totalArts);
-  document.getElementById(`${prefix}-total-uds`).textContent = fmtN(d.totalUds);
-  document.getElementById(`${prefix}-ing-uds`).textContent = fmtN(d.ingUds);
-  document.getElementById(`${prefix}-pend-uds`).textContent = fmtN(d.pendUds);
-  const pctArtsEl = document.getElementById(`${prefix}-pct-arts`);
-  pctArtsEl.textContent = d.pctArts + '%';
-  pctArtsEl.style.color = pctColor(d.pctArts);
-  const pctUdsEl = document.getElementById(`${prefix}-pct-uds`);
-  pctUdsEl.textContent = d.pctUds + '%';
-  pctUdsEl.style.color = pctColor(d.pctUds);
-  document.getElementById(`${prefix}-motivo-arts`).textContent = d.artsMotivoCount;
-  document.getElementById(`${prefix}-pni-uds`).textContent = fmtN(d.pniUds);
-}
-
-function renderTable(tbodyId, tipos) {
-  document.getElementById(tbodyId).innerHTML = tipos.map(t => `
-    <tr>
-      <td>${t.tipo}</td>
-      <td class="r">${t.arts}</td>
-      <td class="r">${fmtN(t.uds_tot)}</td>
-      <td class="r">${fmtN(t.uds_ing)}</td>
-      <td>
-        <div class="pct-wrap">
-          <div class="bar-bg"><div class="bar-fill" style="width:${t.pct}%;background:${pctColor(t.pct)}"></div></div>
-          <span class="pct-lbl" style="color:${pctColor(t.pct)}">${t.pct}%</span>
-        </div>
-      </td>
-    </tr>`).join('');
-}
-
-function renderMotivos(divId, motivos) {
-  const entries = Object.entries(motivos).sort((a,b)=>b[1]-a[1]);
-  const total = entries.reduce((s,[,v])=>s+v,0);
-  if (entries.length === 0) {
-    document.getElementById(divId).innerHTML = '<div style="font-size:12px;color:var(--muted);padding:12px 0">Sin motivos registrados</div>';
-    return;
-  }
-  document.getElementById(divId).innerHTML = entries.map(([k,v]) => `
-    <div class="motivo-item">
-      <span style="color:var(--text);font-size:12px">${k}</span>
-      <span class="motivo-count">${v}</span>
-    </div>`).join('') + `<div class="motivo-total">Total<span>${total}</span></div>`;
-}
-
-function makeDonut(id, legendId, ing, pend, pni) {
-  if (CHARTS[id]) CHARTS[id].destroy();
-  const hasData = ing + pend + pni > 0;
-  CHARTS[id] = new Chart(document.getElementById(id), {
-    type: 'doughnut',
-    data: {
-      labels: ['Ingresadas','Pendientes','Probable no ingreso'],
-      datasets: [{
-        data: hasData ? [ing, pend, pni || 0.001] : [1],
-        backgroundColor: hasData ? ['#4ec994','#f5a623','#f26b6b'] : ['#2a2a2e'],
-        borderColor: '#16161a', borderWidth: 3, hoverOffset: 6
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false, cutout: '68%',
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${fmtN(ctx.parsed)} uds` } }
-      }
-    }
+function parseCom(rows,codStatus){
+  let hi=-1;
+  for(let i=0;i<rows.length;i++){const r=rows[i];if(r[1]&&r[1].toString().replace(/[^a-zA-ZÓó]/g,'').toUpperCase().includes('COD')){hi=i;break}}
+  if(hi<0)hi=2;
+  const data=rows.slice(hi+1).filter(r=>r[0]&&r[0].toString().trim()&&r[2]&&r[2].toString().trim());
+  const n=v=>parseFloat(String(v||0).replace(/[^0-9.-]/g,''))||0;
+  const weeksMap={};
+  data.forEach(r=>{
+    const sem=r[3]?.toString().trim()||'Sin semana';
+    const cod=r[1]?.toString().trim()||'';
+    const prodSt=(codStatus[cod]||'').toUpperCase();
+    const comSt=r[5]?.toString().toUpperCase().trim()||'PENDIENTE';
+    const estado=prodSt==='INGRESADO'?'INGRESADO':prodSt.includes('PROBABLE')?'PROBABLE NO INGRESO':comSt;
+    const pvp=n(r[14]),pmayor=n(r[15]),retail=n(r[13]),web=n(r[8]),mayor=n(r[7]);
+    const vr=retail*pvp,vw=web*pvp,vm=mayor*pmayor,vt=vr+vw+vm;
+    const isIng=estado==='INGRESADO';
+    if(!weeksMap[sem])weeksMap[sem]={semana:sem,items:[],uds_total:0,val_retail:0,val_web:0,val_mayor:0,val_total:0,val_retail_ing:0,val_web_ing:0,val_mayor_ing:0,val_total_ing:0};
+    const w=weeksMap[sem];
+    w.items.push({tipo:r[0]?.toString()||'',cod,nombre:r[2]?.toString()||'',cant:Math.round(n(r[6])),retail:Math.round(retail),web:Math.round(web),mayor:Math.round(mayor),pvp:Math.round(pvp),pmayor:Math.round(pmayor),val_retail:Math.round(vr),val_web:Math.round(vw),val_mayor:Math.round(vm),val_total:Math.round(vt),val_retail_ing:isIng?Math.round(vr):0,val_web_ing:isIng?Math.round(vw):0,val_mayor_ing:isIng?Math.round(vm):0,estado});
+    w.uds_total+=n(r[6]);w.val_retail+=vr;w.val_web+=vw;w.val_mayor+=vm;w.val_total+=vt;
+    if(isIng){w.val_retail_ing+=vr;w.val_web_ing+=vw;w.val_mayor_ing+=vm;w.val_total_ing+=vt;}
   });
-  document.getElementById(legendId).innerHTML = [
-    {c:'#4ec994',l:'Ingresadas',v:fmtN(ing)},
-    {c:'#f5a623',l:'Pendientes',v:fmtN(pend)},
-    {c:'#f26b6b',l:'Prob. no ingreso',v:fmtN(pni)}
-  ].map(x=>`<div class="leg-item"><div class="leg-dot" style="background:${x.c}"></div>${x.l} ${x.v}</div>`).join('');
+  return Object.values(weeksMap);
 }
 
-function makeGroupedBar(id, tipos) {
-  if (CHARTS[id]) CHARTS[id].destroy();
-  CHARTS[id] = new Chart(document.getElementById(id), {
-    type: 'bar',
-    data: {
-      labels: tipos.map(t=>t.tipo),
-      datasets: [
-        { label: 'Total', data: tipos.map(t=>t.uds_tot), backgroundColor: 'rgba(111,168,220,0.2)', borderColor: '#6fa8dc', borderWidth: 1 },
-        { label: 'Ingresadas', data: tipos.map(t=>t.uds_ing), backgroundColor: 'rgba(78,201,148,0.55)', borderColor: '#4ec994', borderWidth: 1 }
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { color: '#7c7b80', font:{size:9} }, grid: { color: 'rgba(255,255,255,0.04)' } },
-        y: { ticks: { color: '#7c7b80', font:{size:9}, callback: v=>fmtN(v) }, grid: { color: 'rgba(255,255,255,0.04)' } }
-      }
-    }
-  });
+function renderKPIs(p,d){
+  document.getElementById(p+'-ta').textContent=fmtN(d.totalArts);
+  document.getElementById(p+'-tu').textContent=fmtN(d.totalUds);
+  document.getElementById(p+'-iu').textContent=fmtN(d.ingUds);
+  document.getElementById(p+'-pu').textContent=fmtN(d.pendUds);
+  const pa=document.getElementById(p+'-pa');pa.textContent=d.pctArts+'%';pa.style.color=pctColor(d.pctArts);
+  const pu=document.getElementById(p+'-pu2');pu.textContent=d.pctUds+'%';pu.style.color=pctColor(d.pctUds);
+  document.getElementById(p+'-am').textContent=d.artsMotivoCount;
+  document.getElementById(p+'-pni').textContent=fmtN(d.pniUds);
+}
+function renderTable(id,tipos){document.getElementById(id).innerHTML=tipos.map(t=>'<tr><td>'+t.tipo+'</td><td class="r">'+t.arts+'</td><td class="r">'+fmtN(t.uds_tot)+'</td><td class="r">'+fmtN(t.uds_ing)+'</td><td><div class="pct-wrap"><div class="bar-bg"><div class="bar-fill" style="width:'+t.pct+'%;background:'+pctColor(t.pct)+'"></div></div><span class="pct-lbl" style="color:'+pctColor(t.pct)+'">'+t.pct+'%</span></div></td></tr>').join('');}
+function renderMotivos(id,m){const e=Object.entries(m).sort((a,b)=>b[1]-a[1]);const total=e.reduce((s,[,v])=>s+v,0);document.getElementById(id).innerHTML=e.length?e.map(([k,v])=>'<div class="motivo-item"><span>'+k+'</span><span class="motivo-count">'+v+'</span></div>').join('')+'<div class="motivo-total">Total<span>'+total+'</span></div>':'<div style="font-size:11px;color:var(--muted)">Sin motivos registrados</div>';}
+
+function mkDonut(id,legId,vals,labels,colors){
+  if(CH[id])CH[id].destroy();
+  CH[id]=new Chart(document.getElementById(id),{type:'doughnut',data:{labels,datasets:[{data:vals.map(v=>v||0.001),backgroundColor:colors,borderColor:'#16161a',borderWidth:3,hoverOffset:5}]},options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+ctx.label+': '+fmtM(ctx.parsed)}}}}});
+  if(legId)document.getElementById(legId).innerHTML=labels.map((l,i)=>'<div class="leg-item"><div class="leg-dot" style="background:'+colors[i]+'"></div>'+l+' '+fmtM(vals[i])+'</div>').join('');
+}
+function mkBar(id,tipos){
+  if(CH[id])CH[id].destroy();
+  CH[id]=new Chart(document.getElementById(id),{type:'bar',data:{labels:tipos.map(t=>t.tipo),datasets:[{label:'Total',data:tipos.map(t=>t.uds_tot),backgroundColor:'rgba(111,168,220,0.2)',borderColor:'#6fa8dc',borderWidth:1},{label:'Ing.',data:tipos.map(t=>t.uds_ing),backgroundColor:'rgba(78,201,148,0.55)',borderColor:'#4ec994',borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#7c7b80',font:{size:8}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#7c7b80',font:{size:8},callback:v=>fmtN(v)},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+}
+function mkHBar(id,wid,tipos){
+  if(CH[id])CH[id].destroy();
+  const s=[...tipos].sort((a,b)=>b.pct-a.pct);
+  document.getElementById(wid).style.height=Math.max(200,s.length*30+60)+'px';
+  CH[id]=new Chart(document.getElementById(id),{type:'bar',data:{labels:s.map(t=>t.tipo),datasets:[{data:s.map(t=>t.pct),backgroundColor:s.map(t=>pctColor(t.pct)+'aa'),borderColor:s.map(t=>pctColor(t.pct)),borderWidth:1,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+ctx.parsed.x+'%'}}},scales:{x:{min:0,max:100,ticks:{color:'#7c7b80',font:{size:8},callback:v=>v+'%'},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#7c7b80',font:{size:9}},grid:{display:false}}}}});
+}
+function mkBarSimple(id,labels,datasets,stacked){
+  if(CH[id])CH[id].destroy();
+  CH[id]=new Chart(document.getElementById(id),{type:'bar',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:!!stacked,ticks:{color:'#7c7b80',font:{size:8}},grid:{color:'rgba(255,255,255,0.04)'}},y:{stacked:!!stacked,ticks:{color:'#7c7b80',font:{size:8},callback:v=>fmtM(v)},grid:{color:'rgba(255,255,255,0.04)'}}}}});
 }
 
-function makeHBar(id, wrapId, tipos) {
-  if (CHARTS[id]) CHARTS[id].destroy();
-  const sorted = [...tipos].sort((a,b)=>b.pct-a.pct);
-  const h = Math.max(240, sorted.length * 32 + 60);
-  document.getElementById(wrapId).style.height = h + 'px';
-  CHARTS[id] = new Chart(document.getElementById(id), {
-    type: 'bar',
-    data: {
-      labels: sorted.map(t=>t.tipo),
-      datasets: [{
-        data: sorted.map(t=>t.pct),
-        backgroundColor: sorted.map(t => pctColor(t.pct) + 'bb'),
-        borderColor: sorted.map(t => pctColor(t.pct)),
-        borderWidth: 1, borderRadius: 3
-      }]
-    },
-    options: {
-      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx=>` ${ctx.parsed.x}%` } } },
-      scales: {
-        x: { min:0, max:100, ticks: { color:'#7c7b80', font:{size:9}, callback:v=>v+'%' }, grid: { color:'rgba(255,255,255,0.04)' } },
-        y: { ticks: { color:'#7c7b80', font:{size:10} }, grid: { display:false } }
-      }
-    }
-  });
+function renderComercial(weeks){
+  const totRI=weeks.reduce((s,w)=>s+w.val_retail_ing,0);
+  const totWI=weeks.reduce((s,w)=>s+w.val_web_ing,0);
+  const totMI=weeks.reduce((s,w)=>s+w.val_mayor_ing,0);
+  const totI=weeks.reduce((s,w)=>s+w.val_total_ing,0);
+  const totT=weeks.reduce((s,w)=>s+w.val_total,0);
+  const totP=totT-totI;
+  const pct=totT>0?Math.round(totI/totT*100):0;
+
+  document.getElementById('com-global-kpis').innerHTML=
+    '<div class="val-kpi" style="border-top:2px solid var(--accent)"><div class="v ca">'+fmtM(totT)+'</div><div class="l">valor total temporada</div></div>'+
+    '<div class="val-kpi" style="border-top:2px solid var(--green)"><div class="v cg">'+fmtM(totI)+'</div><div class="l">ingresado $</div><div class="p cg">'+pct+'% del total</div></div>'+
+    '<div class="val-kpi" style="border-top:2px solid var(--orange)"><div class="v co">'+fmtM(totP)+'</div><div class="l">pendiente $</div><div class="p co">'+(100-pct)+'% del total</div></div>'+
+    '<div class="val-kpi" style="border-top:2px solid var(--blue)"><div class="v cb">'+fmtM(totRI)+'</div><div class="l">retail ingresado $</div></div>'+
+    '<div class="val-kpi" style="border-top:2px solid var(--purple)"><div class="v cp">'+fmtM(totWI)+'</div><div class="l">web ingresado $</div></div>';
+
+  mkDonut('com-donut-total','com-donut-leg',[totI,totP,0],['Ingresado','Pendiente',''],['#4ec994','#f5a623','#f26b6b']);
+  mkBarSimple('com-canal-ing',['Retail','Web','Mayorista'],[{data:[totRI,totWI,totMI],backgroundColor:['rgba(111,168,220,0.7)','rgba(167,139,250,0.7)','rgba(78,201,148,0.7)'],borderColor:['#6fa8dc','#a78bfa','#4ec994'],borderWidth:1,borderRadius:4}],false);
+  const totRP=weeks.reduce((s,w)=>s+w.val_retail-w.val_retail_ing,0);
+  const totWP=weeks.reduce((s,w)=>s+w.val_web-w.val_web_ing,0);
+  const totMP=weeks.reduce((s,w)=>s+w.val_mayor-w.val_mayor_ing,0);
+  mkBarSimple('com-canal-pend',['Retail','Web','Mayorista'],[{data:[totRP,totWP,totMP],backgroundColor:['rgba(242,107,107,0.6)','rgba(245,166,35,0.5)','rgba(124,123,128,0.4)'],borderColor:['#f26b6b','#f5a623','#7c7b80'],borderWidth:1,borderRadius:4}],false);
+
+  const tipoMap={};
+  weeks.forEach(w=>w.items.forEach(it=>{if(!tipoMap[it.tipo])tipoMap[it.tipo]={i:0,p:0};if(it.estado==='INGRESADO')tipoMap[it.tipo].i+=it.val_total;else tipoMap[it.tipo].p+=it.val_total}));
+  const tl=Object.keys(tipoMap).sort((a,b)=>tipoMap[b].i+tipoMap[b].p-(tipoMap[a].i+tipoMap[a].p));
+  mkBarSimple('com-tipo',tl,[{label:'Ingresado',data:tl.map(t=>tipoMap[t].i),backgroundColor:'rgba(78,201,148,0.55)',borderColor:'#4ec994',borderWidth:1},{label:'Pendiente',data:tl.map(t=>tipoMap[t].p),backgroundColor:'rgba(245,166,35,0.4)',borderColor:'#f5a623',borderWidth:1}],true);
+  mkBarSimple('com-semana',weeks.map(w=>w.semana.replace(/\(.*\)/,'').trim()),[{label:'Ingresado',data:weeks.map(w=>w.val_total_ing),backgroundColor:'rgba(78,201,148,0.6)',borderColor:'#4ec994',borderWidth:1},{label:'Pendiente',data:weeks.map(w=>w.val_total-w.val_total_ing),backgroundColor:'rgba(245,166,35,0.4)',borderColor:'#f5a623',borderWidth:1}],true);
+
+  document.getElementById('week-btns').innerHTML=weeks.map((w,i)=>'<button class="week-btn'+(i===curWeek?' active':'')+'" onclick="selWeek('+i+')">'+w.semana+'</button>').join('');
+  renderWk(weeks[curWeek]);
 }
 
-function renderDashboard(data) {
-  for (const prefix of ['d1','d2']) {
-    const d = data[prefix];
-    renderKPIs(prefix, d);
-    renderTable(`${prefix}-tabla`, d.tipologias);
-    renderMotivos(`${prefix}-motivos`, d.motivos);
-    makeDonut(`${prefix}-donut`, `${prefix}-donut-legend`, d.ingUds, d.pendUds, d.pniUds);
-    makeGroupedBar(`${prefix}-bar`, d.tipologias);
-    makeHBar(`${prefix}-hbar`, `${prefix}-hbar-wrap`, d.tipologias);
-  }
-  const now = new Date();
-  document.getElementById('last-update').textContent =
-    now.toLocaleDateString('es-AR') + ' ' + now.toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'});
+function selWeek(i){curWeek=i;document.querySelectorAll('.week-btn').forEach((b,j)=>b.classList.toggle('active',j===i));renderWk(APP.weeks[i]);}
+function renderWk(w){
+  const pct=w.val_total>0?Math.round(w.val_total_ing/w.val_total*100):0;
+  document.getElementById('week-kpis').innerHTML=
+    '<div class="wd-kpi"><div class="v ca">'+fmtM(w.val_total)+'</div><div class="l">valor total semana</div></div>'+
+    '<div class="wd-kpi"><div class="v cg">'+fmtM(w.val_total_ing)+' <span style="font-size:10px">('+pct+'%)</span></div><div class="l">ingresado $</div></div>'+
+    '<div class="wd-kpi"><div class="v co">'+fmtM(w.val_total-w.val_total_ing)+'</div><div class="l">pendiente $</div></div>'+
+    '<div class="wd-kpi"><div class="v cb">'+w.items.length+' arts / '+fmtN(w.uds_total)+' uds</div><div class="l">artículos · unidades</div></div>';
+
+  mkDonut('wk-canal','wk-canal-leg',[w.val_retail_ing,w.val_web_ing,w.val_mayor_ing],['Retail','Web','Mayorista'],['#6fa8dc','#a78bfa','#4ec994']);
+
+  if(CH['wk-art'])CH['wk-art'].destroy();
+  const sorted=[...w.items].sort((a,b)=>b.val_total-a.val_total).slice(0,12);
+  document.getElementById('wk-art-wrap').style.height=Math.max(240,sorted.length*32+60)+'px';
+  CH['wk-art']=new Chart(document.getElementById('wk-art'),{type:'bar',data:{labels:sorted.map(it=>it.nombre.length>18?it.nombre.substring(0,16)+'…':it.nombre),datasets:[{label:'Ingresado',data:sorted.map(it=>it.estado==='INGRESADO'?it.val_total:0),backgroundColor:'rgba(78,201,148,0.6)',borderColor:'#4ec994',borderWidth:1},{label:'Pendiente',data:sorted.map(it=>it.estado!=='INGRESADO'?it.val_total:0),backgroundColor:'rgba(245,166,35,0.45)',borderColor:'#f5a623',borderWidth:1}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+fmtM(ctx.parsed.x)}}},scales:{x:{stacked:true,ticks:{color:'#7c7b80',font:{size:8},callback:v=>fmtM(v)},grid:{color:'rgba(255,255,255,0.04)'}},y:{stacked:true,ticks:{color:'#7c7b80',font:{size:9}},grid:{display:false}}}}});
+
+  const badg=e=>{const u=e.toUpperCase();if(u.includes('INGRES'))return'<span class="badge b-ing">INGRESADO</span>';if(u.includes('PROBABLE'))return'<span class="badge b-dem">PROB. NO ING.</span>';if(u.includes('DEMOR'))return'<span class="badge b-dem">DEMORADO</span>';return'<span class="badge b-pend">PENDIENTE</span>';};
+  document.getElementById('com-week-tbl').innerHTML=w.items.map(it=>'<tr><td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+it.nombre+'">'+it.nombre+'</td><td><span style="font-size:9px;color:var(--muted)">'+it.tipo+'</span></td><td class="r">'+fmtN(it.cant)+'</td><td class="r">'+fmtN(it.retail)+'</td><td class="r">'+fmtN(it.web)+'</td><td class="r">'+fmtN(it.mayor)+'</td><td class="r" style="color:var(--blue)">'+fmtM(it.pvp)+'</td><td class="r" style="color:var(--green)">'+fmtM(it.pmayor)+'</td><td class="r">'+fmtM(it.val_retail)+'</td><td class="r">'+fmtM(it.val_web)+'</td><td class="r">'+fmtM(it.val_mayor)+'</td><td class="r" style="color:var(--accent);font-weight:500">'+fmtM(it.val_total)+'</td><td>'+badg(it.estado)+'</td></tr>').join('');
 }
 
-function showTab(id, btn) {
-  document.querySelectorAll('.dash-panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  btn.classList.add('active');
+function showMain(id,btn){document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.main-tab').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active');btn.classList.add('active');}
+function showDash(id,btn){document.querySelectorAll('.dash-sub').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.ing-tab').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active');btn.classList.add('active');}
+
+function loadData(){
+  document.getElementById('loading').style.display='flex';
+  document.getElementById('app').style.display='none';
+  document.getElementById('err-msg').style.display='none';
+  document.querySelector('.spinner').style.display='block';
+  document.getElementById('load-sub').textContent='Cargando planilla de producción...';
+  Papa.parse(PROXY+encodeURIComponent(PROD_URL),{download:true,skipEmptyLines:true,complete:function(r1){
+    const prodData=parseProd(r1.data);
+    document.getElementById('load-sub').textContent='Cargando planilla comercial...';
+    Papa.parse(PROXY+encodeURIComponent(COM_URL),{download:true,skipEmptyLines:true,complete:function(r2){
+      const weeks=parseCom(r2.data,prodData.codStatus);
+      APP={d1:prodData.d1,d2:prodData.d2,weeks};
+      for(const p of['d1','d2']){const d=APP[p];renderKPIs(p,d);renderTable(p+'-tbl',d.tipologias);renderMotivos(p+'-mot',d.motivos);mkDonut(p+'-donut',p+'-leg',[d.ingUds,d.pendUds,d.pniUds],['Ingresadas','Pendientes','Prob. no ingreso'],['#4ec994','#f5a623','#f26b6b']);mkBar(p+'-bar',d.tipologias);mkHBar(p+'-hbar',p+'-hw',d.tipologias);}
+      renderComercial(weeks);
+      document.getElementById('last-update').textContent=new Date().toLocaleDateString('es-AR')+' '+new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+      document.getElementById('loading').style.display='none';
+      document.getElementById('app').style.display='block';
+    },error:function(e){const el=document.getElementById('err-msg');el.textContent='No se pudo cargar la planilla comercial.\n'+e.message;el.style.display='block';document.querySelector('.spinner').style.display='none';}});
+  },error:function(e){const el=document.getElementById('err-msg');el.textContent='No se pudo cargar la planilla de producción.\n'+e.message;el.style.display='block';document.querySelector('.spinner').style.display='none';}});
 }
-
-function loadData() {
-  document.getElementById('loading').style.display = 'flex';
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('err-msg').style.display = 'none';
-
-  Papa.parse(CSV_URL, {
-    download: true,
-    skipEmptyLines: true,
-    complete: function(results) {
-      try {
-        const data = processData(results.data);
-        renderDashboard(data);
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('app').style.display = 'block';
-      } catch(e) {
-        showError('Error procesando los datos: ' + e.message);
-      }
-    },
-    error: function(err) {
-      showError('No se pudo cargar la planilla. Verificá que esté publicada como CSV público en Google Sheets.\n\nError: ' + err.message);
-    }
-  });
-}
-
-function showError(msg) {
-  const el = document.getElementById('err-msg');
-  el.textContent = msg;
-  el.style.display = 'block';
-  document.querySelector('.spinner').style.display = 'none';
-  document.querySelector('.load-sub').style.display = 'none';
-}
-
 loadData();
 </script>
 </body>
