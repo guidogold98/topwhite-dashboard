@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TOP WHITE — Hub de Producción</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d0d0f;--sf:#16161a;--sf2:#1e1e24;--sf3:#252530;
+  --bd:rgba(255,255,255,0.07);--tx:#f0eee8;--mu:#7c7b80;
+  --ac:#e8c87a;--gn:#4ec994;--or:#f5a623;--rd:#f26b6b;
+  --bl:#6fa8dc;--pu:#a78bfa;--tl:#2dd4bf;
+  --sb:230px;
+}
+body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-weight:300;min-height:100vh;overflow-x:hidden}
+
+/* LOGIN */
+.login-wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:500}
+.login-box{background:var(--sf);border:1px solid var(--bd);border-radius:20px;padding:44px 40px;width:370px;text-align:center;box-shadow:0 40px 80px rgba(0,0,0,.5)}
+.login-logo{font-family:'Playfair Display',serif;font-size:28px;letter-spacing:5px;color:var(--ac);margin-bottom:4px}
+.login-sub{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--mu);margin-bottom:34px}
+.lf{display:flex;flex-direction:column;gap:14px;text-align:left}
+.lf label{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mu);margin-bottom:4px;display:block}
+.lf input{width:100%;background:var(--sf2);border:1px solid var(--bd);border-radius:9px;color:var(--tx);font-family:'DM Sans',sans-serif;font-size:13px;padding:11px 14px;outline:none;transition:border-color .2s}
+.lf input:focus{border-color:var(--ac)}
+.login-btn{margin-top:4px;width:100%;padding:12px;background:var(--ac);color:#0d0d0f;border:none;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:opacity .2s}
+.login-btn:hover{opacity:.88}
+.login-err{font-size:11px;color:var(--rd);text-align:center;margin-top:4px;min-height:16px}
+.login-hint{font-size:9px;color:var(--mu);text-align:center;margin-top:16px;line-height:1.8;border-top:1px solid var(--bd);padding-top:14px}
+.login-hint b{color:var(--tx)}
+
+/* SIDEBAR */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sb);background:var(--sf);border-right:1px solid var(--bd);display:flex;flex-direction:column;z-index:100;transition:width .25s}
+.sb-brand{padding:26px 22px 20px;border-bottom:1px solid var(--bd)}
+.sb-logo{font-family:'Playfair Display',serif;font-size:18px;letter-spacing:4px;color:var(--ac)}
+.sb-tagline{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--mu);margin-top:4px}
+.sb-nav{flex:1;padding:14px 10px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.sb-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;color:var(--mu);font-size:11px;font-weight:400;letter-spacing:.2px;cursor:pointer;transition:all .18s;border:none;background:transparent;width:100%;text-align:left;font-family:'DM Sans',sans-serif;white-space:nowrap}
+.sb-item:hover{background:rgba(255,255,255,.04);color:var(--tx)}
+.sb-item.active{background:rgba(232,200,122,.1);color:var(--ac);font-weight:500}
+.sb-item .icon{font-size:15px;flex-shrink:0;width:22px;text-align:center}
+.sb-sep{height:1px;background:var(--bd);margin:6px 10px}
+.sb-user{padding:14px 18px 18px;border-top:1px solid var(--bd)}
+.sb-uname{font-size:12px;font-weight:500;color:var(--tx);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-urole{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--mu)}
+.sb-logout{margin-top:10px;width:100%;background:transparent;border:1px solid var(--bd);color:var(--mu);font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:6px;border-radius:7px;cursor:pointer;transition:all .2s}
+.sb-logout:hover{border-color:var(--rd);color:var(--rd)}
+
+/* MAIN */
+.main{margin-left:var(--sb);min-height:100vh}
+.panel{display:none;padding:34px 42px 70px;animation:fi .25s ease}
+.panel.active{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.panel-title{font-family:'Playfair Display',serif;font-size:21px;color:var(--ac);margin-bottom:4px}
+.panel-sub{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--mu);margin-bottom:28px}
+
+/* KPI CARDS */
+.kpi-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:20px}
+.kpi{background:var(--sf);border:1px solid var(--bd);border-radius:13px;padding:18px 16px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.k-bl::before{background:var(--bl)}.kpi.k-gn::before{background:var(--gn)}
+.kpi.k-or::before{background:var(--or)}.kpi.k-rd::before{background:var(--rd)}
+.kpi.k-pu::before{background:var(--pu)}.kpi.k-ac::before{background:var(--ac)}
+.kpi-label{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mu);margin-bottom:8px}
+.kpi-val{font-size:28px;font-weight:600;line-height:1;margin-bottom:4px}
+.kpi-sub{font-size:9px;color:var(--mu)}
+.c-gn{color:var(--gn)}.c-or{color:var(--or)}.c-rd{color:var(--rd)}
+.c-bl{color:var(--bl)}.c-ac{color:var(--ac)}.c-pu{color:var(--pu)}.c-mu{color:var(--mu)}
+
+/* CHARTS */
+.charts-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px}
+.chart-box{background:var(--sf);border:1px solid var(--bd);border-radius:13px;padding:18px}
+.chart-title{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--mu);margin-bottom:12px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:0}
+
+/* TABLE WRAPPER */
+.tbl-wrap{background:var(--sf);border:1px solid var(--bd);border-radius:13px;overflow:hidden;margin-bottom:20px}
+.tbl-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--bd);flex-wrap:wrap;gap:10px}
+.tbl-title{font-size:10px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--mu)}
+.tbl-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn-add{background:var(--ac);color:#0d0d0f;border:none;border-radius:8px;padding:8px 18px;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:opacity .2s}
+.btn-add:hover{opacity:.85}
+.btn-tog{background:transparent;border:1px solid var(--bd);color:var(--mu);border-radius:7px;padding:6px 14px;font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.btn-tog.active,.btn-tog:hover{border-color:var(--ac);color:var(--ac);background:rgba(232,200,122,.07)}
+
+/* FILTERS */
+.filters{display:flex;gap:8px;flex-wrap:wrap;padding:12px 20px;border-bottom:1px solid var(--bd);background:rgba(0,0,0,.15)}
+select.flt{background:var(--sf2);border:1px solid var(--bd);color:var(--mu);border-radius:7px;padding:5px 10px;font-family:'DM Sans',sans-serif;font-size:9px;outline:none;cursor:pointer;transition:border-color .2s}
+select.flt:focus{border-color:var(--ac);color:var(--tx)}
+.flt-search{background:var(--sf2);border:1px solid var(--bd);color:var(--tx);border-radius:7px;padding:5px 12px;font-family:'DM Sans',sans-serif;font-size:10px;outline:none;width:180px;transition:border-color .2s}
+.flt-search:focus{border-color:var(--ac)}
+
+/* TABLE */
+.tbl-scroll{overflow-x:auto;max-height:560px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:10px}
+thead th{position:sticky;top:0;background:var(--sf2);font-weight:500;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--mu);padding:9px 10px;border-bottom:1px solid var(--bd);text-align:left;white-space:nowrap;z-index:2}
+thead th.r{text-align:right}
+tbody tr{border-bottom:1px solid rgba(255,255,255,.03);transition:background .12s}
+tbody tr:hover{background:rgba(255,255,255,.025)}
+tbody tr:last-child{border-bottom:none}
+tbody td{padding:8px 10px;color:var(--tx);white-space:nowrap;vertical-align:middle}
+tbody td.r{text-align:right}
+tbody td.mu{color:var(--mu);font-size:9px}
+.row-act{display:flex;gap:5px;justify-content:flex-end}
+.btn-sm{background:transparent;border:1px solid var(--bd);border-radius:5px;padding:3px 9px;font-size:9px;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--mu);transition:all .18s}
+.btn-sm.edit:hover{border-color:var(--ac);color:var(--ac)}
+.btn-sm.del:hover{border-color:var(--rd);color:var(--rd)}
+
+/* BADGES */
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:8px;font-weight:500;letter-spacing:.3px;white-space:nowrap}
+.b-taller{background:rgba(111,168,220,.15);color:var(--bl)}
+.b-entregado{background:rgba(78,201,148,.15);color:var(--gn)}
+.b-demorado{background:rgba(242,107,107,.2);color:var(--rd)}
+.b-pendiente{background:rgba(245,166,35,.15);color:var(--or)}
+.b-ok{background:rgba(78,201,148,.15);color:var(--gn)}
+.b-pend{background:rgba(245,166,35,.12);color:var(--or)}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:300;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:var(--sf);border:1px solid var(--bd);border-radius:17px;width:700px;max-width:100%;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 40px 100px rgba(0,0,0,.5)}
+.modal-hd{padding:22px 28px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.modal-hd h3{font-family:'Playfair Display',serif;font-size:17px;color:var(--ac)}
+.modal-close{background:transparent;border:none;color:var(--mu);font-size:18px;cursor:pointer;padding:2px 6px;border-radius:4px;line-height:1;transition:color .2s}
+.modal-close:hover{color:var(--rd)}
+.modal-body{padding:22px 28px;overflow-y:auto;flex:1}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.modal-grid.g3{grid-template-columns:1fr 1fr 1fr}
+.field{display:flex;flex-direction:column;gap:5px}
+.field.full{grid-column:1/-1}
+.field label{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mu)}
+.field input,.field select,.field textarea{background:var(--sf2);border:1px solid var(--bd);border-radius:8px;color:var(--tx);font-family:'DM Sans',sans-serif;font-size:12px;padding:9px 12px;outline:none;transition:border-color .2s;width:100%}
+.field input:focus,.field select:focus{border-color:var(--ac)}
+.field input[readonly]{opacity:.5;cursor:default}
+.field select option{background:var(--sf)}
+.sec-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--mu);margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--bd);grid-column:1/-1}
+.modal-ft{padding:16px 28px;border-top:1px solid var(--bd);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0}
+.btn-save{background:var(--ac);color:#0d0d0f;border:none;border-radius:9px;padding:10px 26px;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:opacity .2s}
+.btn-save:hover{opacity:.88}
+.btn-cancel{background:transparent;border:1px solid var(--bd);color:var(--mu);border-radius:9px;padding:9px 20px;font-family:'DM Sans',sans-serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.btn-cancel:hover{border-color:var(--mu);color:var(--tx)}
+
+/* GANTT */
+.gantt-wrap{padding:16px 20px}
+.gantt-legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.gl{display:flex;align-items:center;gap:5px;font-size:9px;color:var(--mu)}
+.gl-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.gantt-header{display:flex;align-items:center;gap:10px;margin-bottom:4px;padding-bottom:6px;border-bottom:1px solid var(--bd)}
+.gantt-hl{width:160px;flex-shrink:0;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--mu)}
+.gantt-row{display:flex;align-items:center;gap:10px;margin-bottom:5px}
+.gantt-label{width:160px;flex-shrink:0;font-size:9px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gantt-track{flex:1;position:relative;height:14px;background:rgba(255,255,255,.04);border-radius:4px;overflow:visible}
+.gantt-bar{position:absolute;height:100%;border-radius:3px}
+.gantt-today{position:absolute;top:-3px;bottom:-3px;width:1.5px;background:var(--rd);opacity:.7;z-index:1}
+.gantt-datecol{width:60px;text-align:right;font-size:9px;color:var(--mu);flex-shrink:0}
+
+/* ALERTS & UPCOMING */
+.alert-list{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto}
+.alert-item{display:flex;align-items:flex-start;gap:10px;background:rgba(242,107,107,.07);border:1px solid rgba(242,107,107,.18);border-radius:9px;padding:10px 14px}
+.alert-dot{width:6px;height:6px;border-radius:50%;background:var(--rd);flex-shrink:0;margin-top:3px}
+.alert-text{font-size:11px;color:var(--tx);margin-bottom:2px}
+.alert-meta{font-size:9px;color:var(--mu)}
+.upcoming-list{display:flex;flex-direction:column;gap:5px;max-height:260px;overflow-y:auto}
+.up-item{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--sf2);border-radius:8px;font-size:10px}
+.up-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tx)}
+.up-date{color:var(--ac);font-weight:500;flex-shrink:0;font-size:10px}
+.up-days{font-size:9px;flex-shrink:0;min-width:56px;text-align:right}
+
+/* EMPTY / PLACEHOLDER */
+.empty{text-align:center;padding:50px 20px;color:var(--mu)}
+.empty-icon{font-size:32px;margin-bottom:10px}
+.empty-txt{font-size:13px;color:var(--tx);margin-bottom:5px}
+.empty-sub{font-size:11px}
+.ph{text-align:center;padding:70px 20px;color:var(--mu);background:var(--sf);border:1px solid var(--bd);border-radius:13px}
+.ph-icon{font-size:38px;margin-bottom:14px}
+.ph-txt{font-size:14px;color:var(--tx);margin-bottom:6px}
+.ph-sub{font-size:11px;max-width:340px;margin:0 auto;line-height:1.7}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;right:28px;background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:12px 20px;font-size:11px;color:var(--tx);z-index:999;box-shadow:0 8px 30px rgba(0,0,0,.4);opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .sidebar{width:62px}
+  .sb-item span,.sb-brand .sb-tagline,.sb-user .sb-uname,.sb-user .sb-urole,.sb-logout{display:none}
+  .sb-brand .sb-logo{font-size:14px;letter-spacing:2px}
+  .main{margin-left:62px}
+  .panel{padding:20px 16px 50px}
+  .kpi-row{grid-template-columns:repeat(2,1fr)}
+  .charts-row,.two-col{grid-template-columns:1fr}
+  .modal-grid,.modal-grid.g3{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="login-wrap">
+  <div class="login-box">
+    <div class="login-logo">TOP WHITE</div>
+    <div class="login-sub">Hub de Producción</div>
+    <div class="lf">
+      <div>
+        <label>Usuario</label>
+        <input type="text" id="l-user" placeholder="tu usuario" autocomplete="username">
+      </div>
+      <div>
+        <label>Contraseña</label>
+        <input type="password" id="l-pass" placeholder="••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="login-btn" onclick="doLogin()">Ingresar</button>
+      <div class="login-err" id="l-err"></div>
+    </div>
+    <div class="login-hint">
+      <b>Usuarios de prueba</b><br>
+      admin / tw2026 &nbsp;·&nbsp; produccion / prod123<br>
+      producto / prod123 &nbsp;·&nbsp; compras / comp123 &nbsp;·&nbsp; deposito / dep123
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+  <aside class="sidebar">
+    <div class="sb-brand">
+      <div class="sb-logo">TOP WHITE</div>
+      <div class="sb-tagline">Hub de Producción</div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+    <div class="sb-user">
+      <div class="sb-uname" id="sb-uname">—</div>
+      <div class="sb-urole" id="sb-urole">—</div>
+      <button class="sb-logout" onclick="doLogout()">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div class="panel" id="panel-dash">
+      <div class="panel-title">Dashboard</div>
+      <div class="panel-sub">Resumen general · actualizado en tiempo real</div>
+      <div class="kpi-row" id="dash-kpis"></div>
+      <div class="charts-row">
+        <div class="chart-box"><div class="chart-title">Estado de artículos</div><div style="position:relative;height:160px"><canvas id="ch-estado"></canvas></div></div>
+        <div class="chart-box"><div class="chart-title">Artículos por línea</div><div style="position:relative;height:160px"><canvas id="ch-linea"></canvas></div></div>
+        <div class="chart-box"><div class="chart-title">Talleres activos</div><div style="position:relative;height:160px"><canvas id="ch-taller"></canvas></div></div>
+      </div>
+      <div class="two-col">
+        <div class="chart-box">
+          <div class="chart-title">⚠ Alertas — corte demorado o sin fecha</div>
+          <div class="alert-list" id="dash-alerts"></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title">📅 Próximos ingresos acordados</div>
+          <div class="upcoming-list" id="dash-upcoming"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRODUCCIÓN -->
+    <div class="panel" id="panel-prod">
+      <div class="panel-title">Seguimiento de Producción</div>
+      <div class="panel-sub">Todos los artículos · editable · guardado automático</div>
+      <div class="tbl-wrap">
+        <div class="tbl-head">
+          <div class="tbl-title" id="prod-count">—</div>
+          <div class="tbl-actions">
+            <button class="btn-tog active" id="btn-tv" onclick="setProdView('table')">📋 Tabla</button>
+            <button class="btn-tog" id="btn-gv" onclick="setProdView('gantt')">📊 Gantt</button>
+            <button class="btn-add" onclick="openProdModal(null)">+ Agregar artículo</button>
+          </div>
+        </div>
+        <div class="filters" id="prod-filters"></div>
+        <div id="prod-view"></div>
+      </div>
+    </div>
+
+    <!-- MATRIZ -->
+    <div class="panel" id="panel-mtz">
+      <div class="panel-title">Matriz de Producto</div>
+      <div class="panel-sub">Materias primas, consumos y costos · editable</div>
+      <div class="tbl-wrap">
+        <div class="tbl-head">
+          <div class="tbl-title" id="mtz-count">—</div>
+          <div class="tbl-actions">
+            <button class="btn-add" onclick="openMtzModal(null)">+ Agregar</button>
+          </div>
+        </div>
+        <div class="filters" id="mtz-filters"></div>
+        <div id="mtz-view"></div>
+      </div>
+    </div>
+
+    <!-- CORTES -->
+    <div class="panel" id="panel-cortes">
+      <div class="panel-title">Cortes</div>
+      <div class="panel-sub">Estado en tiempo real desde Ninox</div>
+      <div class="ph">
+        <div class="ph-icon">✂️</div>
+        <div class="ph-txt">Conexión a Ninox pendiente</div>
+        <div class="ph-sub">Cuando tengas el token de API, esta sección mostrará los cortes activos en tiempo real directamente desde Ninox — sin intervención manual.</div>
+      </div>
+    </div>
+
+    <!-- STOCK -->
+    <div class="panel" id="panel-stock">
+      <div class="panel-title">División de Stock</div>
+      <div class="panel-sub">Distribución automática por sucursal</div>
+      <div class="ph">
+        <div class="ph-icon">📦</div>
+        <div class="ph-txt">En desarrollo</div>
+        <div class="ph-sub">Ingresá un corte y la app calculará automáticamente la distribución de unidades por sucursal según las reglas que configures.</div>
+      </div>
+    </div>
+
+    <!-- CONFIG -->
+    <div class="panel" id="panel-cfg">
+      <div class="panel-title">Configuración</div>
+      <div class="panel-sub">Usuarios y roles del sistema</div>
+      <div class="tbl-wrap" style="margin-bottom:20px">
+        <div class="tbl-head"><div class="tbl-title">Usuarios del sistema</div></div>
+        <div class="tbl-scroll"><table style="min-width:500px">
+          <thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Acceso</th></tr></thead>
+          <tbody id="cfg-users"></tbody>
+        </table></div>
+      </div>
+      <div class="tbl-wrap">
+        <div class="tbl-head"><div class="tbl-title">Datos del sistema</div></div>
+        <div style="padding:18px 20px;display:flex;gap:12px;flex-wrap:wrap">
+          <button class="btn-cancel" onclick="resetData('prod')">🔄 Resetear datos de Producción</button>
+          <button class="btn-cancel" onclick="resetData('mtz')">🔄 Resetear datos de Matriz</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- MODAL PRODUCCIÓN -->
+<div class="modal-bg" id="modal-prod">
+  <div class="modal">
+    <div class="modal-hd">
+      <h3 id="mprod-title">Nuevo artículo</h3>
+      <button class="modal-close" onclick="closeModal('modal-prod')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="mp-id">
+      <div class="modal-grid">
+        <div class="field"><label>Mes</label>
+          <select id="mp-mes"><option>ENERO</option><option>FEBRERO</option><option>MARZO</option><option>ABRIL</option><option>MAYO</option><option>JUNIO</option><option>JULIO</option><option>AGOSTO</option><option>SEPTIEMBRE</option><option>OCTUBRE</option><option>NOVIEMBRE</option><option>DICIEMBRE</option></select></div>
+        <div class="field"><label>Línea</label>
+          <select id="mp-linea"><option>DIA</option><option>NOCHE</option><option>DENIM</option><option>PT</option><option>CONTINUO</option><option>CÁPSULA 3</option><option>OTRO</option></select></div>
+        <div class="field"><label>Código</label><input id="mp-codigo" placeholder="BDY301"></div>
+        <div class="field full"><label>Nombre del artículo</label><input id="mp-nombre" placeholder="BODY DEX"></div>
+        <div class="field"><label>Marca</label><input id="mp-marca" placeholder="TW"></div>
+        <div class="field"><label>Cantidad</label><input id="mp-cant" type="number" min="0" placeholder="0"></div>
+        <div class="field"><label>Precio</label><input id="mp-precio" type="number" min="0" placeholder="0"></div>
+        <div class="field"><label>Ingreso planificado</label><input id="mp-planif" placeholder="15/6"></div>
+        <div class="sec-label">Tela &amp; Corte</div>
+        <div class="field"><label>Ingreso de tela</label><input id="mp-tela" placeholder="30/4"></div>
+        <div class="field"><label>Corte planificado</label><input id="mp-cortep" placeholder="21/4"></div>
+        <div class="field"><label>Corte real</label><input id="mp-corter" placeholder="8/5"></div>
+        <div class="field"><label>&nbsp;</label></div>
+        <div class="sec-label">Taller</div>
+        <div class="field"><label>Taller</label><input id="mp-taller" placeholder="RONALD QUISBERT"></div>
+        <div class="field"><label>Fecha salida taller</label><input id="mp-salida" placeholder="13/5"></div>
+        <div class="field"><label>Estado</label>
+          <select id="mp-estado"><option>EN TALLER</option><option>ENTREGADO</option><option>DEMORADO</option><option>PENDIENTE</option></select></div>
+        <div class="field"><label>&nbsp;</label></div>
+        <div class="sec-label">Ingreso final</div>
+        <div class="field"><label>Ingreso acordado</label><input id="mp-ingac" placeholder="4/6"></div>
+        <div class="field"><label>Ingreso real</label><input id="mp-ingre" placeholder="8/6 ó 3S"></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-cancel" onclick="closeModal('modal-prod')">Cancelar</button>
+      <button class="btn-save" onclick="saveProd()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MATRIZ -->
+<div class="modal-bg" id="modal-mtz">
+  <div class="modal" style="width:780px">
+    <div class="modal-hd">
+      <h3 id="mmtz-title">Nuevo artículo en matriz</h3>
+      <button class="modal-close" onclick="closeModal('modal-mtz')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="mm-id">
+      <div class="modal-grid">
+        <div class="field"><label>Mes</label>
+          <select id="mm-mes"><option>ENERO</option><option>FEBRERO</option><option>MARZO</option><option>ABRIL</option><option>MAYO</option><option>JUNIO</option><option>JULIO</option><option>AGOSTO</option></select></div>
+        <div class="field"><label>Línea</label>
+          <select id="mm-linea"><option>DIA</option><option>NOCHE</option><option>DENIM</option><option>PT</option><option>CONTINUO</option><option>CÁPSULA 3</option><option>OTRO</option></select></div>
+        <div class="field"><label>Etapa</label><input id="mm-etapa" placeholder="PRODUCCION"></div>
+        <div class="field"><label>Código</label><input id="mm-cod" placeholder="BDY301"></div>
+        <div class="field full"><label>Nombre del artículo</label><input id="mm-nombre" placeholder="BODY DEX"></div>
+        <div class="field"><label>Color</label><input id="mm-color" placeholder="NEGRO"></div>
+        <div class="field"><label>Cant</label><input id="mm-cant" type="number" min="0" placeholder="0" oninput="calcMtzTotal()"></div>
+        <div class="field"><label>Q Real</label><input id="mm-qreal" type="number" min="0" placeholder="0"></div>
+        <div class="field"><label>Corte</label><input id="mm-corte" placeholder="15/4"></div>
+        <div class="field"><label>Ficha final</label><input id="mm-ficha" placeholder="OK / PENDIENTE"></div>
+        <div class="field"><label>Compra</label><input id="mm-compra" placeholder="OK / PENDIENTE"></div>
+        <div class="field"><label>MP</label><input id="mm-mp" placeholder="OK / PENDIENTE"></div>
+        <div class="sec-label">Materia Prima</div>
+        <div class="field"><label>Cod TW</label><input id="mm-codtw" placeholder=""></div>
+        <div class="field"><label>Materia prima</label><input id="mm-materia" placeholder="JERSEY"></div>
+        <div class="field"><label>Proveedor</label><input id="mm-prov" placeholder=""></div>
+        <div class="field"><label>Color proveedor</label><input id="mm-colorprov" placeholder=""></div>
+        <div class="field"><label>Ubicación</label><input id="mm-ubic" placeholder="DEPOSITO A"></div>
+        <div class="sec-label">Consumos</div>
+        <div class="field"><label>Consumo x pr (mts)</label><input id="mm-consumo" type="number" step="0.01" placeholder="0.00"></div>
+        <div class="field"><label>Rinde</label><input id="mm-rinde" type="number" step="0.01" placeholder="0.00"></div>
+        <div class="field"><label>Cantidad</label><input id="mm-cantidad" type="number" placeholder="0"></div>
+        <div class="field"><label>Rinde real</label><input id="mm-rindereal" type="number" step="0.01" placeholder="0.00"></div>
+        <div class="field"><label>Q real mts</label><input id="mm-qrealmts" type="number" step="0.01" placeholder="0.00"></div>
+        <div class="field"><label>Consumo real x pr</label><input id="mm-consumoreal" type="number" step="0.01" placeholder="0.00"></div>
+        <div class="sec-label">Costos</div>
+        <div class="field"><label>Precio</label><input id="mm-precio" type="number" placeholder="0"></div>
+        <div class="field"><label>Costo x pr</label><input id="mm-costo" type="number" placeholder="0" oninput="calcMtzTotal()"></div>
+        <div class="field"><label>Total $ (auto)</label><input id="mm-total" type="number" placeholder="0" readonly></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-cancel" onclick="closeModal('modal-mtz')">Cancelar</button>
+      <button class="btn-save" onclick="saveMtz()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── AUTH ──────────────────────────────────────────────────────────
+const USERS=[
+  {id:1,name:'Admin',username:'admin',password:'tw2026',role:'admin'},
+  {id:2,name:'Jefa Producción',username:'produccion',password:'prod123',role:'produccion'},
+  {id:3,name:'Jefa Producto',username:'producto',password:'prod123',role:'producto'},
+  {id:4,name:'Compras',username:'compras',password:'comp123',role:'compras'},
+  {id:5,name:'Depósito',username:'deposito',password:'dep123',role:'deposito'},
+];
+const PERMS={
+  admin:   ['dash','prod','mtz','cortes','stock','cfg'],
+  produccion:['dash','prod','cortes','stock'],
+  producto:  ['dash','prod','mtz','cortes'],
+  compras:   ['dash','mtz','stock'],
+  deposito:  ['stock'],
+};
+const MENU=[
+  {id:'dash',   icon:'🏠', label:'Dashboard'},
+  {id:'prod',   icon:'📅', label:'Producción'},
+  {id:'mtz',    icon:'📋', label:'Matriz de Producto'},
+  {id:'cortes', icon:'✂️', label:'Cortes'},
+  {id:'stock',  icon:'📦', label:'División de Stock'},
+  {id:'cfg',    icon:'⚙️', label:'Configuración'},
+];
+let CU=null;
+
+function doLogin(){
+  const u=gV('l-user').trim().toLowerCase();
+  const p=gV('l-pass');
+  const found=USERS.find(x=>x.username===u&&x.password===p);
+  if(!found){document.getElementById('l-err').textContent='Usuario o contraseña incorrectos';return;}
+  document.getElementById('l-err').textContent='';
+  CU=found;
+  localStorage.setItem('tw_hub_session',JSON.stringify({id:found.id}));
+  launchApp();
+}
+function doLogout(){
+  CU=null;localStorage.removeItem('tw_hub_session');
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-wrap').style.display='flex';
+}
+function checkAuth(){
+  const s=localStorage.getItem('tw_hub_session');
+  if(s){const sess=JSON.parse(s);const u=USERS.find(x=>x.id===sess.id);if(u){CU=u;launchApp();return;}}
+}
+function launchApp(){
+  document.getElementById('login-wrap').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('sb-uname').textContent=CU.name;
+  document.getElementById('sb-urole').textContent=CU.role.toUpperCase();
+  buildNav();
+  const first=(PERMS[CU.role]||[])[0]||'dash';
+  showPanel(first);
+}
+function buildNav(){
+  const allowed=PERMS[CU.role]||[];
+  const nav=document.getElementById('sb-nav');
+  nav.innerHTML='';
+  MENU.forEach(item=>{
+    if(!allowed.includes(item.id))return;
+    const b=document.createElement('button');
+    b.className='sb-item';b.dataset.panel=item.id;
+    b.innerHTML=`<span class="icon">${item.icon}</span><span>${item.label}</span>`;
+    b.onclick=()=>showPanel(item.id);
+    nav.appendChild(b);
+  });
+}
+function showPanel(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(b=>b.classList.remove('active'));
+  const p=document.getElementById('panel-'+id);if(p)p.classList.add('active');
+  const b=document.querySelector(`.sb-item[data-panel="${id}"]`);if(b)b.classList.add('active');
+  if(id==='dash')renderDash();
+  if(id==='prod')renderProd();
+  if(id==='mtz')renderMtz();
+  if(id==='cfg')renderCfg();
+}
+
+// ── STORAGE ───────────────────────────────────────────────────────
+function getData(k){try{return JSON.parse(localStorage.getItem('tw_hub_'+k)||'null');}catch{return null;}}
+function setData(k,v){localStorage.setItem('tw_hub_'+k,JSON.stringify(v));}
+function nextId(k){const n=parseInt(localStorage.getItem('tw_nid_'+k)||'1');localStorage.setItem('tw_nid_'+k,n+1);return n;}
+
+// ── SAMPLE DATA ───────────────────────────────────────────────────
+const SAMPLE_PROD=[
+  {id:1,mes:'JUNIO',planificado:'8/6',marca:'TW',linea:'DIA',codigo:'BDY301',nombre:'BODY DEX',cant:280,ingresoTela:'30/4',cortePlan:'21/4',corteReal:'8/5',precio:2600,taller:'RONALD QUISBERT',fechaSalida:'13/5',estado:'EN TALLER',ingAcord:'4/6',ingReal:'8/6'},
+  {id:2,mes:'JUNIO',planificado:'8/6',marca:'TW',linea:'NOCHE',codigo:'TOP582',nombre:'TOP DERM',cant:340,ingresoTela:'27/5',cortePlan:'4/5',corteReal:'',precio:2200,taller:'REYNALDO QUISBERT',fechaSalida:'1/6',estado:'EN TALLER',ingAcord:'22/6',ingReal:'3S'},
+  {id:3,mes:'JUNIO',planificado:'8/6',marca:'TW',linea:'PT',codigo:'',nombre:'SWEATER REKTEL',cant:220,ingresoTela:'',cortePlan:'',corteReal:'',precio:21800,taller:'MAZON',fechaSalida:'',estado:'EN TALLER',ingAcord:'20/5',ingReal:'22/6'},
+  {id:4,mes:'JUNIO',planificado:'8/6',marca:'TW',linea:'DIA',codigo:'BDY315',nombre:'BODY CYRA',cant:304,ingresoTela:'',cortePlan:'8/5',corteReal:'21/5',precio:2300,taller:'WALDO QUISBERT',fechaSalida:'22/5',estado:'EN TALLER',ingAcord:'10/6',ingReal:'3S'},
+  {id:5,mes:'JUNIO',planificado:'8/6',marca:'TW',linea:'CONTINUO',codigo:'TOP552',nombre:'TOP DELSEN (REPO JUNIO)',cant:431,ingresoTela:'19/5',cortePlan:'18/5',corteReal:'',precio:1800,taller:'BETO',fechaSalida:'3/6',estado:'EN TALLER',ingAcord:'9/6',ingReal:'2S'},
+  {id:6,mes:'JUNIO',planificado:'8/6',marca:'TW',linea:'CONTINUO',codigo:'BDY288',nombre:'BODY KADOL (REPO JUNIO)',cant:352,ingresoTela:'19/5',cortePlan:'18/5',corteReal:'',precio:2000,taller:'WALDO QUISBERT',fechaSalida:'26/5',estado:'EN TALLER',ingAcord:'9/6',ingReal:'2S'},
+  {id:7,mes:'JUNIO',planificado:'15/6',marca:'TW',linea:'DENIM',codigo:'PAD017',nombre:'PANTALON ROOTS',cant:252,ingresoTela:'1/4',cortePlan:'26/3',corteReal:'14/4',precio:4000,taller:'RAMIRO',fechaSalida:'28/4',estado:'ENTREGADO',ingAcord:'13/5',ingReal:'21/5'},
+  {id:8,mes:'JUNIO',planificado:'15/6',marca:'TW',linea:'CÁPSULA 3',codigo:'PAN303',nombre:'PANTALON DEER',cant:173,ingresoTela:'27/4',cortePlan:'16/4',corteReal:'19/5',precio:5000,taller:'CLAUDIO',fechaSalida:'28/5',estado:'EN TALLER',ingAcord:'17/6',ingReal:'4S'},
+  {id:9,mes:'JUNIO',planificado:'15/6',marca:'TW',linea:'DIA',codigo:'TOP581',nombre:'TOP BAST',cant:258,ingresoTela:'27/5',cortePlan:'17/4',corteReal:'',precio:0,taller:'ESTAMPA',fechaSalida:'12/5',estado:'EN TALLER',ingAcord:'26/5',ingReal:'2S'},
+  {id:10,mes:'JUNIO',planificado:'15/6',marca:'TW',linea:'CÁPSULA 3',codigo:'CPA031',nombre:'CAMPERA DEER',cant:144,ingresoTela:'27/4',cortePlan:'20/4',corteReal:'19/5',precio:5800,taller:'CLAUDIO',fechaSalida:'28/5',estado:'EN TALLER',ingAcord:'17/6',ingReal:'4S'},
+  {id:11,mes:'JUNIO',planificado:'15/6',marca:'TW',linea:'NOCHE',codigo:'BDY302',nombre:'BODY ROCCO',cant:244,ingresoTela:'',cortePlan:'22/4',corteReal:'8/5',precio:2700,taller:'BETO',fechaSalida:'19/5',estado:'EN TALLER',ingAcord:'9/6',ingReal:'4S'},
+  {id:12,mes:'JUNIO',planificado:'15/6',marca:'TW',linea:'NOCHE',codigo:'TOP578',nombre:'TOP GOTIC',cant:224,ingresoTela:'14/4',cortePlan:'28/4',corteReal:'8/5',precio:2700,taller:'ROSARIO VELASQUEZ',fechaSalida:'13/5',estado:'EN TALLER',ingAcord:'18/6',ingReal:'5S'},
+  {id:13,mes:'JUNIO',planificado:'15/6',marca:'TW',linea:'DIA',codigo:'BDY303',nombre:'BODY SULT',cant:416,ingresoTela:'17/4',cortePlan:'4/5',corteReal:'7/5',precio:2500,taller:'JOSE GARCIA',fechaSalida:'12/5',estado:'ENTREGADO',ingAcord:'4/6',ingReal:'2/6'},
+  {id:14,mes:'JUNIO',planificado:'15/6',marca:'TW',linea:'CÁPSULA 3',codigo:'VDO223',nombre:'VESTIDO FLASH',cant:112,ingresoTela:'30/4',cortePlan:'4/5',corteReal:'14/5',precio:2300,taller:'WALDO QUISBERT',fechaSalida:'15/5',estado:'EN TALLER',ingAcord:'11/6',ingReal:'3S'},
+  {id:15,mes:'JUNIO',planificado:'15/6',marca:'TW',linea:'CÁPSULA 3',codigo:'MNI167',nombre:'MINI CIRV',cant:120,ingresoTela:'19/5',cortePlan:'18/5',corteReal:'',precio:1900,taller:'ROSA RAMOS',fechaSalida:'26/5',estado:'EN TALLER',ingAcord:'10/6',ingReal:'12/6'},
+  {id:16,mes:'JUNIO',planificado:'22/6',marca:'TW',linea:'DIA',codigo:'CAM020',nombre:'CAMISA MARY',cant:333,ingresoTela:'12/3',cortePlan:'30/3',corteReal:'31/3',precio:0,taller:'STAMPRIMA',fechaSalida:'6/4',estado:'ENTREGADO',ingAcord:'27/4',ingReal:'10/4'},
+  {id:17,mes:'JUNIO',planificado:'22/6',marca:'TW',linea:'DENIM',codigo:'PAD016',nombre:'PANTALON REIGN MT',cant:250,ingresoTela:'12/3',cortePlan:'6/4',corteReal:'13/4',precio:4000,taller:'WILFREDO',fechaSalida:'17/4',estado:'EN TALLER',ingAcord:'4/5',ingReal:'26/5'},
+  {id:18,mes:'JUNIO',planificado:'22/6',marca:'TW',linea:'DIA',codigo:'REM164',nombre:'REMERA ROLL',cant:346,ingresoTela:'10/4',cortePlan:'20/4',corteReal:'12/5',precio:1300,taller:'IRVIN',fechaSalida:'12/5',estado:'ENTREGADO',ingAcord:'22/5',ingReal:'21/5'},
+  {id:19,mes:'JUNIO',planificado:'22/6',marca:'TW',linea:'NOCHE',codigo:'SHT166',nombre:'SHORT DANK',cant:300,ingresoTela:'',cortePlan:'28/4',corteReal:'14/5',precio:0,taller:'WALDO QUISBERT',fechaSalida:'18/5',estado:'EN TALLER',ingAcord:'15/6',ingReal:'4S'},
+  {id:20,mes:'JUNIO',planificado:'22/6',marca:'TW',linea:'NOCHE',codigo:'BDY314',nombre:'BODY PARTER',cant:260,ingresoTela:'13/4',cortePlan:'4/5',corteReal:'19/5',precio:2500,taller:'EDUARDO CANAZZA',fechaSalida:'22/5',estado:'ENTREGADO',ingAcord:'5/6',ingReal:'5/6'},
+];
+const SAMPLE_MTZ=[
+  {id:1,mes:'JUNIO',linea:'DIA',etapa:'PRODUCCION',cod:'BDY301',nombre:'BODY DEX',color:'NEGRO',cant:280,qreal:280,corte:'21/4',ficha:'OK',compra:'OK',mp:'OK',codtw:'',materia:'JERSEY',prov:'TEXTIL SA',colorprov:'NEGRO',ubic:'DEPOSITO A',consumo:0.55,rinde:1.8,cantidad:154,rindereal:1.75,qrealmts:160,consumoreal:0.57,precio:2600,costo:1100,total:308000},
+  {id:2,mes:'JUNIO',linea:'NOCHE',etapa:'PRODUCCION',cod:'TOP582',nombre:'TOP DERM',color:'BLANCO',cant:340,qreal:340,corte:'4/5',ficha:'OK',compra:'OK',mp:'PENDIENTE',codtw:'',materia:'MODAL',prov:'TELAS DEL SUR',colorprov:'BLANCO',ubic:'DEPOSITO B',consumo:0.7,rinde:1.4,cantidad:238,rindereal:0,qrealmts:0,consumoreal:0,precio:2200,costo:950,total:323000},
+  {id:3,mes:'JUNIO',linea:'DENIM',etapa:'PRODUCCION',cod:'PAD017',nombre:'PANTALON ROOTS',color:'AZUL',cant:252,qreal:252,corte:'26/3',ficha:'OK',compra:'OK',mp:'OK',codtw:'',materia:'DENIM',prov:'DENIM EXPRESS',colorprov:'AZUL ÍNDIGO',ubic:'DEPOSITO A',consumo:1.2,rinde:0.83,cantidad:302,rindereal:0.85,qrealmts:297,consumoreal:1.18,precio:4000,costo:1800,total:453600},
+];
+function initData(){
+  if(!getData('prod')){setData('prod',SAMPLE_PROD);localStorage.setItem('tw_nid_prod','21');}
+  if(!getData('mtz')){setData('mtz',SAMPLE_MTZ);localStorage.setItem('tw_nid_mtz','4');}
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────
+const LINEA_COLORS={DIA:'#e8c87a',NOCHE:'#a78bfa','CÁPSULA 3':'#2dd4bf',DENIM:'#6fa8dc',PT:'#4ec994',CONTINUO:'#f5a623'};
+const CHART_PALETTE=['#4ec994','#6fa8dc','#a78bfa','#f5a623','#2dd4bf','#f26b6b','#e8c87a','#f0eee8'];
+function fmtN(n){return Math.round(n).toLocaleString('es-AR')}
+function fmtV(n){return'$'+Math.round(n).toLocaleString('es-AR')}
+function parseD(s){if(!s||typeof s!=='string')return null;const m=s.match(/^(\d{1,2})\/(\d{1,2})$/);if(!m)return null;return new Date(2026,+m[2]-1,+m[1]);}
+const TODAY=new Date();
+function diffD(a,b){return Math.round((a-b)/86400000);}
+function gV(id){const e=document.getElementById(id);return e?e.value:'';}
+function sV(id,v){const e=document.getElementById(id);if(e)e.value=(v??'');}
+function uniq(arr){return[...new Set(arr)].filter(Boolean).sort();}
+
+function statusBadge(e){
+  const u=(e||'').toUpperCase();
+  if(u==='ENTREGADO')return`<span class="badge b-entregado">ENTREGADO</span>`;
+  if(u==='EN TALLER')return`<span class="badge b-taller">EN TALLER</span>`;
+  if(u==='DEMORADO')return`<span class="badge b-demorado">DEMORADO</span>`;
+  return`<span class="badge b-pendiente">${e||'PENDIENTE'}</span>`;
+}
+function okBadge(v){
+  if(!v)return'<span style="font-size:9px;color:var(--mu)">—</span>';
+  return(v.toUpperCase()==='OK')?`<span class="badge b-ok">OK</span>`:`<span class="badge b-pend">${v}</span>`;
+}
+function lineaBadge(l){return`<span style="font-size:8px;font-weight:500;color:${LINEA_COLORS[l]||'var(--mu)'}">${l||''}</span>`;}
+
+const CHS={};
+function mkChart(id,type,data,opts={}){
+  if(CHS[id]){CHS[id].destroy();delete CHS[id];}
+  const ctx=document.getElementById(id);if(!ctx)return;
+  CHS[id]=new Chart(ctx,{type,data,options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:opts.legend??false,labels:{color:'#7c7b80',font:{size:9},boxWidth:10}}},
+    scales:['bar','horizontalBar'].includes(type)?{x:{ticks:{color:'#7c7b80',font:{size:8}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#7c7b80',font:{size:8}},grid:{color:'rgba(255,255,255,0.04)'}}}:{},
+    ...(opts.extra||{})
+  }});
+}
+
+function toast(msg,color='var(--gn)'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.style.borderLeftColor=color;t.style.borderLeft='3px solid '+color;
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────
+function renderDash(){
+  const rows=getData('prod')||[];
+  const total=rows.length;
+  const entregado=rows.filter(r=>r.estado==='ENTREGADO').length;
+  const enTaller=rows.filter(r=>r.estado==='EN TALLER').length;
+  const sinFecha=rows.filter(r=>!r.ingAcord&&r.estado!=='ENTREGADO').length;
+  const demorados=rows.filter(r=>{
+    if(r.estado==='ENTREGADO')return false;
+    const cp=parseD(r.cortePlan);
+    return cp&&diffD(TODAY,cp)>0&&!r.corteReal;
+  });
+
+  document.getElementById('dash-kpis').innerHTML=`
+    <div class="kpi k-bl"><div class="kpi-label">Total artículos</div><div class="kpi-val">${total}</div><div class="kpi-sub">en producción</div></div>
+    <div class="kpi k-ac"><div class="kpi-label">En taller</div><div class="kpi-val c-ac">${enTaller}</div><div class="kpi-sub">actualmente</div></div>
+    <div class="kpi k-gn"><div class="kpi-label">Entregados</div><div class="kpi-val c-gn">${entregado}</div><div class="kpi-sub">${total?Math.round(entregado/total*100):0}% del total</div></div>
+    <div class="kpi k-rd"><div class="kpi-label">Demorados</div><div class="kpi-val c-rd">${demorados.length}</div><div class="kpi-sub">corte atrasado</div></div>
+    <div class="kpi k-or"><div class="kpi-label">Sin fecha acordada</div><div class="kpi-val c-or">${sinFecha}</div><div class="kpi-sub">pendientes de definir</div></div>
+  `;
+
+  // Chart estado
+  const estados={ENTREGADO:0,'EN TALLER':0,DEMORADO:0,PENDIENTE:0};
+  rows.forEach(r=>{estados[r.estado||'PENDIENTE']=(estados[r.estado||'PENDIENTE']||0)+1;});
+  mkChart('ch-estado','doughnut',{labels:Object.keys(estados),datasets:[{data:Object.values(estados),backgroundColor:['#4ec994','#6fa8dc','#f26b6b','#f5a623'],borderWidth:0,hoverOffset:4}]},{legend:true,extra:{cutout:'62%'}});
+
+  // Chart línea
+  const lineas={};rows.forEach(r=>{const l=r.linea||'OTRO';lineas[l]=(lineas[l]||0)+1;});
+  const lk=Object.keys(lineas);
+  mkChart('ch-linea','bar',{labels:lk,datasets:[{data:lk.map(k=>lineas[k]),backgroundColor:lk.map(k=>LINEA_COLORS[k]||'#7c7b80'),borderRadius:4,borderWidth:0}]},{extra:{plugins:{legend:{display:false}}}});
+
+  // Chart taller
+  const talleres={};rows.filter(r=>r.estado!=='ENTREGADO'&&r.taller).forEach(r=>{talleres[r.taller]=(talleres[r.taller]||0)+1;});
+  const tk=Object.entries(talleres).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  mkChart('ch-taller','bar',{labels:tk.map(e=>e[0]),datasets:[{data:tk.map(e=>e[1]),backgroundColor:'rgba(167,139,250,0.55)',borderRadius:4,borderWidth:0}]},{extra:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#7c7b80',font:{size:8}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#7c7b80',font:{size:8}},grid:{display:false}}}}});
+
+  // Alerts
+  const al=document.getElementById('dash-alerts');
+  if(!demorados.length){al.innerHTML='<div style="font-size:11px;color:var(--mu);padding:8px 0">Sin alertas activas ✓</div>';}
+  else{al.innerHTML=demorados.slice(0,6).map(r=>`<div class="alert-item"><div class="alert-dot"></div><div><div class="alert-text">${r.nombre}</div><div class="alert-meta">Corte plan: ${r.cortePlan||'—'} · Taller: ${r.taller||'—'}</div></div></div>`).join('');}
+
+  // Upcoming
+  const up=document.getElementById('dash-upcoming');
+  const upcoming=rows.filter(r=>r.ingAcord&&r.estado!=='ENTREGADO').map(r=>({...r,d:parseD(r.ingAcord)})).filter(r=>r.d).sort((a,b)=>a.d-b.d).slice(0,7);
+  if(!upcoming.length){up.innerHTML='<div style="font-size:11px;color:var(--mu)">Sin fechas próximas cargadas</div>';}
+  else{up.innerHTML=upcoming.map(r=>{const dd=diffD(r.d,TODAY);const c=dd<0?'var(--rd)':dd<=5?'var(--or)':'var(--gn)';const lbl=dd===0?'HOY':dd<0?`${Math.abs(dd)}d atrás`:`en ${dd}d`;return`<div class="up-item"><span class="up-name" title="${r.nombre}">${r.nombre}</span><span class="up-date">${r.ingAcord}</span><span class="up-days" style="color:${c}">${lbl}</span></div>`;}).join('');}
+}
+
+// ── PRODUCCIÓN ────────────────────────────────────────────────────
+let PF={mes:'ALL',linea:'ALL',estado:'ALL',q:''};
+let PV='table';
+
+function renderProd(){
+  const rows=getData('prod')||[];
+  const meses=uniq(rows.map(r=>r.mes));
+  const lineas=uniq(rows.map(r=>r.linea));
+  document.getElementById('prod-filters').innerHTML=`
+    <select class="flt" onchange="PF.mes=this.value;renderProdView()"><option value="ALL">Todos los meses</option>${meses.map(m=>`<option>${m}</option>`).join('')}</select>
+    <select class="flt" onchange="PF.linea=this.value;renderProdView()"><option value="ALL">Todas las líneas</option>${lineas.map(l=>`<option>${l}</option>`).join('')}</select>
+    <select class="flt" onchange="PF.estado=this.value;renderProdView()"><option value="ALL">Todos los estados</option><option>EN TALLER</option><option>ENTREGADO</option><option>DEMORADO</option><option>PENDIENTE</option></select>
+    <input class="flt-search" placeholder="Buscar artículo..." oninput="PF.q=this.value;renderProdView()">
+  `;
+  renderProdView();
+}
+
+function filtProd(){
+  return(getData('prod')||[]).filter(r=>
+    (PF.mes==='ALL'||r.mes===PF.mes)&&
+    (PF.linea==='ALL'||r.linea===PF.linea)&&
+    (PF.estado==='ALL'||r.estado===PF.estado)&&
+    (!PF.q||r.nombre.toLowerCase().includes(PF.q.toLowerCase())||r.codigo.toLowerCase().includes(PF.q.toLowerCase()))
+  );
+}
+
+function setProdView(v){
+  PV=v;
+  document.getElementById('btn-tv').classList.toggle('active',v==='table');
+  document.getElementById('btn-gv').classList.toggle('active',v==='gantt');
+  renderProdView();
+}
+
+function renderProdView(){
+  const rows=filtProd();
+  document.getElementById('prod-count').textContent=`${rows.length} artículo${rows.length!==1?'s':''}`;
+  const el=document.getElementById('prod-view');
+  if(PV==='gantt'){renderGantt(rows,el);return;}
+  if(!rows.length){el.innerHTML='<div class="empty"><div class="empty-icon">🔍</div><div class="empty-txt">Sin resultados</div><div class="empty-sub">Probá cambiando los filtros</div></div>';return;}
+  el.innerHTML=`<div class="tbl-scroll"><table>
+    <thead><tr>
+      <th>Mes</th><th>Línea</th><th>Código</th><th>Artículo</th><th class="r">Cant</th>
+      <th>Ing. Tela</th><th>Corte Plan.</th><th>Corte Real</th>
+      <th>Taller</th><th>F. Salida</th><th>Estado</th>
+      <th>Ing. Acordado</th><th>Ing. Real</th><th class="r">Precio</th><th></th>
+    </tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td class="mu">${r.mes||''}</td>
+      <td>${lineaBadge(r.linea)}</td>
+      <td class="mu">${r.codigo||''}</td>
+      <td style="max-width:155px;overflow:hidden;text-overflow:ellipsis" title="${r.nombre||''}">${r.nombre||''}</td>
+      <td class="r">${fmtN(r.cant||0)}</td>
+      <td class="mu">${r.ingresoTela||''}</td>
+      <td class="mu">${r.cortePlan||''}</td>
+      <td class="mu">${r.corteReal||''}</td>
+      <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;font-size:9px;color:var(--tx)" title="${r.taller||''}">${r.taller||''}</td>
+      <td class="mu">${r.fechaSalida||''}</td>
+      <td>${statusBadge(r.estado)}</td>
+      <td style="color:var(--ac);font-weight:500;font-size:10px">${r.ingAcord||''}</td>
+      <td class="mu">${r.ingReal||''}</td>
+      <td class="r" style="color:var(--bl);font-size:9px">${r.precio?fmtV(r.precio):''}</td>
+      <td><div class="row-act">
+        <button class="btn-sm edit" onclick="openProdModal(${r.id})">✏</button>
+        <button class="btn-sm del" onclick="delProd(${r.id})">✕</button>
+      </div></td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+function renderGantt(rows,el){
+  const allD=rows.flatMap(r=>[r.ingresoTela,r.cortePlan,r.fechaSalida,r.ingAcord].map(parseD).filter(Boolean));
+  if(!allD.length){el.innerHTML='<div class="empty"><div class="empty-icon">📊</div><div class="empty-txt">Sin fechas para mostrar en el Gantt</div></div>';return;}
+  const minD=new Date(Math.min(...allD)),maxD=new Date(Math.max(...allD));
+  const span=Math.max(diffD(maxD,minD),1);
+  const pct=d=>{if(!d)return null;return Math.max(0,Math.min(100,diffD(d,minD)/span*100));};
+  const todayPct=pct(TODAY);
+
+  el.innerHTML=`<div class="gantt-wrap">
+    <div class="gantt-legend">
+      <div class="gl"><div class="gl-dot" style="background:#6fa8dc"></div>Tela → Corte</div>
+      <div class="gl"><div class="gl-dot" style="background:#a78bfa"></div>Corte → Salida</div>
+      <div class="gl"><div class="gl-dot" style="background:#4ec994"></div>Salida → Ingreso</div>
+      <div class="gl"><div class="gl-dot" style="background:var(--rd)"></div>Hoy</div>
+    </div>
+    <div class="gantt-header"><div class="gantt-hl">Artículo</div><div style="flex:1"></div><div class="gantt-datecol">Ing. acord.</div></div>
+    ${rows.map(r=>{
+      const t1=parseD(r.ingresoTela),t2=parseD(r.cortePlan),t3=parseD(r.fechaSalida),t4=parseD(r.ingAcord);
+      const p1=pct(t1),p2=pct(t2),p3=pct(t3),p4=pct(t4);
+      return`<div class="gantt-row">
+        <div class="gantt-label" title="${r.nombre||''}">${r.codigo||r.nombre?.substring(0,12)||''}</div>
+        <div class="gantt-track">
+          ${p1!=null&&p2!=null?`<div class="gantt-bar" style="left:${p1}%;width:${Math.max(0.5,p2-p1)}%;background:#6fa8dc;opacity:.65"></div>`:''}
+          ${p2!=null&&p3!=null?`<div class="gantt-bar" style="left:${p2}%;width:${Math.max(0.5,p3-p2)}%;background:#a78bfa;opacity:.65"></div>`:''}
+          ${p3!=null&&p4!=null?`<div class="gantt-bar" style="left:${p3}%;width:${Math.max(0.5,p4-p3)}%;background:#4ec994;opacity:.65"></div>`:''}
+          ${todayPct!=null?`<div class="gantt-today" style="left:${todayPct}%"></div>`:''}
+        </div>
+        <div class="gantt-datecol">${r.ingAcord||''}</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function openProdModal(id){
+  const r=id?(getData('prod')||[]).find(x=>x.id===id):null;
+  sV('mp-id',r?.id||'');sV('mp-mes',r?.mes||'JUNIO');sV('mp-linea',r?.linea||'DIA');
+  sV('mp-codigo',r?.codigo||'');sV('mp-nombre',r?.nombre||'');sV('mp-marca',r?.marca||'TW');
+  sV('mp-cant',r?.cant||'');sV('mp-precio',r?.precio||'');sV('mp-planif',r?.planificado||'');
+  sV('mp-tela',r?.ingresoTela||'');sV('mp-cortep',r?.cortePlan||'');sV('mp-corter',r?.corteReal||'');
+  sV('mp-taller',r?.taller||'');sV('mp-salida',r?.fechaSalida||'');sV('mp-estado',r?.estado||'EN TALLER');
+  sV('mp-ingac',r?.ingAcord||'');sV('mp-ingre',r?.ingReal||'');
+  document.getElementById('mprod-title').textContent=r?'Editar artículo':'Nuevo artículo';
+  document.getElementById('modal-prod').classList.add('open');
+}
+function saveProd(){
+  const id=gV('mp-id');
+  const row={
+    id:id?parseInt(id):nextId('prod'),
+    mes:gV('mp-mes'),linea:gV('mp-linea'),codigo:gV('mp-codigo'),nombre:gV('mp-nombre'),marca:gV('mp-marca'),
+    cant:parseFloat(gV('mp-cant'))||0,precio:parseFloat(gV('mp-precio'))||0,planificado:gV('mp-planif'),
+    ingresoTela:gV('mp-tela'),cortePlan:gV('mp-cortep'),corteReal:gV('mp-corter'),
+    taller:gV('mp-taller'),fechaSalida:gV('mp-salida'),estado:gV('mp-estado'),
+    ingAcord:gV('mp-ingac'),ingReal:gV('mp-ingre'),
+  };
+  let rows=getData('prod')||[];
+  if(id)rows=rows.map(r=>r.id===parseInt(id)?row:r);else rows.push(row);
+  setData('prod',rows);closeModal('modal-prod');renderProd();toast('Artículo guardado ✓');
+}
+function delProd(id){
+  if(!confirm('¿Eliminar este artículo?'))return;
+  setData('prod',(getData('prod')||[]).filter(r=>r.id!==id));
+  renderProd();toast('Eliminado','var(--rd)');
+}
+
+// ── MATRIZ ────────────────────────────────────────────────────────
+let MF={mes:'ALL',linea:'ALL'};
+
+function renderMtz(){
+  const rows=getData('mtz')||[];
+  const meses=uniq(rows.map(r=>r.mes));
+  const lineas=uniq(rows.map(r=>r.linea));
+  document.getElementById('mtz-filters').innerHTML=`
+    <select class="flt" onchange="MF.mes=this.value;renderMtzView()"><option value="ALL">Todos los meses</option>${meses.map(m=>`<option>${m}</option>`).join('')}</select>
+    <select class="flt" onchange="MF.linea=this.value;renderMtzView()"><option value="ALL">Todas las líneas</option>${lineas.map(l=>`<option>${l}</option>`).join('')}</select>
+  `;
+  renderMtzView();
+}
+function filtMtz(){
+  return(getData('mtz')||[]).filter(r=>(MF.mes==='ALL'||r.mes===MF.mes)&&(MF.linea==='ALL'||r.linea===MF.linea));
+}
+function renderMtzView(){
+  const rows=filtMtz();
+  document.getElementById('mtz-count').textContent=`${rows.length} artículo${rows.length!==1?'s':''}`;
+  const el=document.getElementById('mtz-view');
+  if(!rows.length){el.innerHTML='<div class="empty"><div class="empty-icon">🔍</div><div class="empty-txt">Sin resultados</div></div>';return;}
+  el.innerHTML=`<div class="tbl-scroll"><table style="min-width:1500px">
+    <thead><tr>
+      <th>Mes</th><th>Línea</th><th>Etapa</th><th>Código</th><th>Artículo</th><th>Color</th>
+      <th class="r">Cant</th><th class="r">Q Real</th><th>Corte</th><th>Ficha</th><th>Compra</th><th>MP</th>
+      <th>Materia Prima</th><th>Proveedor</th><th>Color Prov.</th><th>Ubicación</th>
+      <th class="r">Cons./pr</th><th class="r">Rinde</th><th class="r">Cantidad</th>
+      <th class="r">Rinde Real</th><th class="r">Q real mts</th><th class="r">Cons.real/pr</th>
+      <th class="r">Precio</th><th class="r">Costo/pr</th><th class="r">Total $</th><th></th>
+    </tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td class="mu">${r.mes||''}</td><td>${lineaBadge(r.linea)}</td><td class="mu">${r.etapa||''}</td>
+      <td class="mu">${r.cod||''}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis" title="${r.nombre||''}">${r.nombre||''}</td>
+      <td class="mu">${r.color||''}</td>
+      <td class="r">${r.cant||0}</td><td class="r mu">${r.qreal||0}</td>
+      <td class="mu">${r.corte||''}</td>
+      <td>${okBadge(r.ficha)}</td><td>${okBadge(r.compra)}</td><td>${okBadge(r.mp)}</td>
+      <td>${r.materia||''}</td><td class="mu">${r.prov||''}</td><td class="mu">${r.colorprov||''}</td><td class="mu">${r.ubic||''}</td>
+      <td class="r mu">${r.consumo||0}</td><td class="r mu">${r.rinde||0}</td><td class="r mu">${r.cantidad||0}</td>
+      <td class="r mu">${r.rindereal||0}</td><td class="r mu">${r.qrealmts||0}</td><td class="r mu">${r.consumoreal||0}</td>
+      <td class="r" style="color:var(--bl);font-size:9px">${r.precio?fmtV(r.precio):''}</td>
+      <td class="r" style="color:var(--or);font-size:9px">${r.costo?fmtV(r.costo):''}</td>
+      <td class="r" style="color:var(--ac);font-weight:500">${r.total?fmtV(r.total):''}</td>
+      <td><div class="row-act">
+        <button class="btn-sm edit" onclick="openMtzModal(${r.id})">✏</button>
+        <button class="btn-sm del" onclick="delMtz(${r.id})">✕</button>
+      </div></td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+function calcMtzTotal(){
+  const c=parseFloat(gV('mm-cant'))||0;
+  const p=parseFloat(gV('mm-costo'))||0;
+  sV('mm-total',Math.round(c*p)||'');
+}
+function openMtzModal(id){
+  const r=id?(getData('mtz')||[]).find(x=>x.id===id):null;
+  const f=k=>r?.[k]??'';
+  sV('mm-id',f('id'));sV('mm-mes',f('mes')||'JUNIO');sV('mm-linea',f('linea')||'DIA');
+  sV('mm-etapa',f('etapa'));sV('mm-cod',f('cod'));sV('mm-nombre',f('nombre'));sV('mm-color',f('color'));
+  sV('mm-cant',f('cant'));sV('mm-qreal',f('qreal'));sV('mm-corte',f('corte'));
+  sV('mm-ficha',f('ficha'));sV('mm-compra',f('compra'));sV('mm-mp',f('mp'));
+  sV('mm-codtw',f('codtw'));sV('mm-materia',f('materia'));sV('mm-prov',f('prov'));
+  sV('mm-colorprov',f('colorprov'));sV('mm-ubic',f('ubic'));
+  sV('mm-consumo',f('consumo'));sV('mm-rinde',f('rinde'));sV('mm-cantidad',f('cantidad'));
+  sV('mm-rindereal',f('rindereal'));sV('mm-qrealmts',f('qrealmts'));sV('mm-consumoreal',f('consumoreal'));
+  sV('mm-precio',f('precio'));sV('mm-costo',f('costo'));sV('mm-total',f('total'));
+  document.getElementById('mmtz-title').textContent=r?'Editar artículo':'Nuevo artículo en matriz';
+  document.getElementById('modal-mtz').classList.add('open');
+}
+function saveMtz(){
+  const id=gV('mm-id');
+  const cant=parseFloat(gV('mm-cant'))||0;const costo=parseFloat(gV('mm-costo'))||0;
+  const row={
+    id:id?parseInt(id):nextId('mtz'),
+    mes:gV('mm-mes'),linea:gV('mm-linea'),etapa:gV('mm-etapa'),cod:gV('mm-cod'),nombre:gV('mm-nombre'),color:gV('mm-color'),
+    cant,qreal:parseFloat(gV('mm-qreal'))||0,corte:gV('mm-corte'),ficha:gV('mm-ficha'),compra:gV('mm-compra'),mp:gV('mm-mp'),
+    codtw:gV('mm-codtw'),materia:gV('mm-materia'),prov:gV('mm-prov'),colorprov:gV('mm-colorprov'),ubic:gV('mm-ubic'),
+    consumo:parseFloat(gV('mm-consumo'))||0,rinde:parseFloat(gV('mm-rinde'))||0,
+    cantidad:parseFloat(gV('mm-cantidad'))||0,rindereal:parseFloat(gV('mm-rindereal'))||0,
+    qrealmts:parseFloat(gV('mm-qrealmts'))||0,consumoreal:parseFloat(gV('mm-consumoreal'))||0,
+    precio:parseFloat(gV('mm-precio'))||0,costo,total:Math.round(cant*costo),
+  };
+  let rows=getData('mtz')||[];
+  if(id)rows=rows.map(r=>r.id===parseInt(id)?row:r);else rows.push(row);
+  setData('mtz',rows);closeModal('modal-mtz');renderMtz();toast('Guardado ✓');
+}
+function delMtz(id){
+  if(!confirm('¿Eliminar esta fila?'))return;
+  setData('mtz',(getData('mtz')||[]).filter(r=>r.id!==id));
+  renderMtz();toast('Eliminado','var(--rd)');
+}
+
+// ── CONFIG ────────────────────────────────────────────────────────
+const ROLE_DESC={admin:'Acceso completo',produccion:'Producción + Cortes + Stock',producto:'Producto + Matriz + Cortes',compras:'Matriz + Stock',deposito:'Solo División de Stock'};
+function renderCfg(){
+  document.getElementById('cfg-users').innerHTML=USERS.map(u=>`<tr>
+    <td>${u.name}</td><td class="mu">${u.username}</td>
+    <td><span class="badge" style="background:rgba(232,200,122,.12);color:var(--ac)">${u.role}</span></td>
+    <td class="mu" style="font-size:9px">${ROLE_DESC[u.role]||u.role}</td>
+  </tr>`).join('');
+}
+function resetData(k){
+  if(!confirm(`¿Resetear datos de ${k==='prod'?'Producción':'Matriz'}? Esto borrará todos los cambios.`))return;
+  localStorage.removeItem('tw_hub_'+k);localStorage.removeItem('tw_nid_'+k);
+  initData();if(k==='prod')renderProd();else renderMtz();toast('Datos reseteados','var(--or)');
+}
+
+// ── MODAL CLOSE ───────────────────────────────────────────────────
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-bg.open').forEach(m=>m.classList.remove('open'));});
+
+// ── INIT ──────────────────────────────────────────────────────────
+initData();
+checkAuth();
+</script>
+</body>
+</html>
