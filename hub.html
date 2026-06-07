@@ -147,6 +147,23 @@ tbody td.mu{color:var(--mu);font-size:9px}
 .field input[readonly]{opacity:.55;cursor:default;background:var(--sf3)}
 .field select option{background:#fff}
 
+/* MATRIZ EXPANDABLE */
+.mtz-row{cursor:pointer}
+.mtz-chevron{display:inline-block;transition:transform .2s;color:var(--mu);font-size:9px;margin-right:6px}
+.mtz-row.open .mtz-chevron{transform:rotate(90deg);color:var(--ac)}
+.mtz-detail-row td{padding:0;background:var(--sf2)}
+.mtz-detail{padding:14px 18px 18px 38px;display:none}
+.mtz-detail-row.open .mtz-detail{display:block}
+.mtz-detail-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.mtz-detail-title{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ac);font-weight:600}
+.mtz-mat-tbl{width:100%;border-collapse:collapse;font-size:9px;background:var(--sf);border:1px solid var(--bd);border-radius:9px;overflow:hidden}
+.mtz-mat-tbl th{background:var(--sf3);font-weight:500;font-size:8px;letter-spacing:.8px;text-transform:uppercase;color:var(--mu);padding:7px 9px;text-align:left;white-space:nowrap}
+.mtz-mat-tbl th.r,.mtz-mat-tbl td.r{text-align:right}
+.mtz-mat-tbl td{padding:7px 9px;border-top:1px solid var(--bd);color:var(--tx);white-space:nowrap}
+.mtz-mat-empty{padding:16px;text-align:center;color:var(--mu);font-size:10px;border:1px dashed var(--bd);border-radius:9px}
+.btn-add-sm{background:transparent;border:1px dashed var(--ac);color:var(--ac);border-radius:7px;padding:5px 12px;font-size:9px;font-weight:500;letter-spacing:.5px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .18s}
+.btn-add-sm:hover{background:rgba(181,137,42,.08)}
+
 /* SMALL MODAL (prod/mtz edit) */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:300;display:none;align-items:center;justify-content:center;padding:20px}
 .modal-bg.open{display:flex}
@@ -372,34 +389,13 @@ tbody td.mu{color:var(--mu);font-size:9px}
     </div>
 
     <div class="fsec">
-      <div class="fsec-title">Materia Prima</div>
+      <div class="fsec-title">Materia Prima y Costos</div>
       <div class="fgrid">
-        <div class="field"><label>Cod TW</label><input id="dr-codtw" placeholder=""></div>
-        <div class="field"><label>Materia prima</label><input id="dr-materia" placeholder="JERSEY"></div>
-        <div class="field"><label>Proveedor</label><input id="dr-prov" placeholder=""></div>
-        <div class="field"><label>Color proveedor</label><input id="dr-colorprov" placeholder=""></div>
         <div class="field full"><label>Ubicación</label><input id="dr-ubic" placeholder="DEPOSITO A"></div>
-      </div>
-    </div>
-
-    <div class="fsec">
-      <div class="fsec-title">Consumos</div>
-      <div class="fgrid g3">
-        <div class="field"><label>Consumo x pr (mts)</label><input id="dr-consumo" type="number" step="0.01" placeholder="0.00"></div>
-        <div class="field"><label>Rinde</label><input id="dr-rinde" type="number" step="0.01" placeholder="0.00"></div>
-        <div class="field"><label>Cantidad MP</label><input id="dr-cantmp" type="number" placeholder="0"></div>
-        <div class="field"><label>Rinde real</label><input id="dr-rindereal" type="number" step="0.01" placeholder="0.00"></div>
-        <div class="field"><label>Q real mts</label><input id="dr-qrealmts" type="number" step="0.01" placeholder="0.00"></div>
-        <div class="field"><label>Consumo real x pr</label><input id="dr-consumoreal" type="number" step="0.01" placeholder="0.00"></div>
-      </div>
-    </div>
-
-    <div class="fsec">
-      <div class="fsec-title">Costos</div>
-      <div class="fgrid">
         <div class="field"><label>Precio venta</label><input id="dr-precio" type="number" placeholder="0"></div>
-        <div class="field"><label>Costo x pr</label><input id="dr-costo" type="number" placeholder="0" oninput="calcDrTotal()"></div>
-        <div class="field"><label>Total $ (auto)</label><input id="dr-total" type="number" placeholder="0" readonly></div>
+      </div>
+      <div style="margin-top:12px;padding:11px 14px;background:var(--sf2);border:1px dashed var(--bd);border-radius:9px;font-size:10px;color:var(--mu);line-height:1.6">
+        💡 Las telas, avíos, etiquetas y demás componentes (con sus consumos, rindes y costos) se cargan desde la pestaña <b style="color:var(--ac)">Matriz</b>, desplegando el artículo — así podés sumar todos los que necesite cada producto.
       </div>
     </div>
 
@@ -471,25 +467,44 @@ tbody td.mu{color:var(--mu);font-size:9px}
         <div class="field"><label>Ficha final</label><input id="mm-ficha" placeholder="OK / PENDIENTE"></div>
         <div class="field"><label>Compra</label><input id="mm-compra" placeholder="OK / PENDIENTE"></div>
         <div class="field"><label>MP</label><input id="mm-mp" placeholder="OK / PENDIENTE"></div>
-        <div class="field"><label>Cod TW</label><input id="mm-codtw"></div>
-        <div class="field"><label>Materia prima</label><input id="mm-materia" placeholder="JERSEY"></div>
-        <div class="field"><label>Proveedor</label><input id="mm-prov"></div>
-        <div class="field"><label>Color proveedor</label><input id="mm-colorprov"></div>
-        <div class="field full"><label>Ubicación</label><input id="mm-ubic" placeholder="DEPOSITO A"></div>
-        <div class="field"><label>Consumo x pr (mts)</label><input id="mm-consumo" type="number" step="0.01" placeholder="0.00"></div>
-        <div class="field"><label>Rinde</label><input id="mm-rinde" type="number" step="0.01" placeholder="0.00"></div>
-        <div class="field"><label>Cantidad MP</label><input id="mm-cantmp" type="number" placeholder="0"></div>
-        <div class="field"><label>Rinde real</label><input id="mm-rindereal" type="number" step="0.01" placeholder="0.00"></div>
-        <div class="field"><label>Q real mts</label><input id="mm-qrealmts" type="number" step="0.01" placeholder="0.00"></div>
-        <div class="field"><label>Consumo real x pr</label><input id="mm-consumoreal" type="number" step="0.01" placeholder="0.00"></div>
+        <div class="field"><label>Ubicación</label><input id="mm-ubic" placeholder="DEPOSITO A"></div>
         <div class="field"><label>Precio venta</label><input id="mm-precio" type="number" placeholder="0"></div>
-        <div class="field"><label>Costo x pr</label><input id="mm-costo" type="number" placeholder="0" oninput="calcMmTotal()"></div>
-        <div class="field"><label>Total $ (auto)</label><input id="mm-total" type="number" placeholder="0" readonly></div>
       </div>
     </div>
     <div class="modal-ft">
       <button class="btn-cancel" onclick="closeModal('modal-mtz')">Cancelar</button>
       <button class="btn-save" onclick="saveMtzModal()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: COMPONENTE / MATERIA PRIMA -->
+<div class="modal-bg" id="modal-mat">
+  <div class="modal">
+    <div class="modal-hd"><h3 id="mat-title">Agregar componente</h3><button class="modal-close" onclick="closeModal('modal-mat')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="mat-article-id"><input type="hidden" id="mat-id">
+      <div style="margin-bottom:14px;padding:10px 12px;background:var(--sf2);border-radius:8px;font-size:11px;color:var(--mu)" id="mat-info"></div>
+      <div class="fgrid">
+        <div class="field"><label>Tipo</label>
+          <select id="mat-tipo"><option>TELA</option><option>ETIQUETA</option><option>AVÍO</option><option>PACKAGING</option><option>HANGTAG</option><option>BOLSA</option><option>OTRO</option></select></div>
+        <div class="field"><label>Cod TW</label><input id="mat-codtw" placeholder="TMPALT"></div>
+        <div class="field full"><label>Materia / Descripción</label><input id="mat-materia" placeholder="28170 MICROFIBRA PESADA COLOR"></div>
+        <div class="field"><label>Proveedor</label><input id="mat-prov" placeholder="ALTER"></div>
+        <div class="field"><label>Color proveedor</label><input id="mat-colorprov" placeholder="NEGRO"></div>
+        <div class="field"><label>Consumo x pr (mts)</label><input id="mat-consumo" type="number" step="0.01" placeholder="0.00"></div>
+        <div class="field"><label>Rinde</label><input id="mat-rinde" type="number" step="0.01" placeholder="0.00"></div>
+        <div class="field"><label>Cantidad MP</label><input id="mat-cantmp" type="number" placeholder="0" oninput="calcMatTotal()"></div>
+        <div class="field"><label>Rinde real</label><input id="mat-rindereal" type="number" step="0.01" placeholder="0.00"></div>
+        <div class="field"><label>Q real mts</label><input id="mat-qrealmts" type="number" step="0.01" placeholder="0.00"></div>
+        <div class="field"><label>Consumo real x pr</label><input id="mat-consumoreal" type="number" step="0.01" placeholder="0.00"></div>
+        <div class="field"><label>Costo x pr</label><input id="mat-costo" type="number" placeholder="0" oninput="calcMatTotal()"></div>
+        <div class="field"><label>Total $ (auto)</label><input id="mat-total" type="number" placeholder="0" readonly></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-cancel" onclick="closeModal('modal-mat')">Cancelar</button>
+      <button class="btn-save" onclick="saveMatModal()">Guardar</button>
     </div>
   </div>
 </div>
@@ -578,7 +593,23 @@ const SAMPLE=[
   {id:19,mes:'JUNIO',marca:'TW',linea:'NOCHE',etapa:'',codigo:'SHT166',nombre:'SHORT DANK',color:'',cant:300,qreal:0,ficha:'',compra:'',mp:'',codtw:'',materia:'',prov:'',colorprov:'',ubic:'',consumo:0,rinde:0,cantmp:0,rindereal:0,qrealmts:0,consumoreal:0,precio:0,costo:0,total:0,planificado:'22/6',ingresoTela:'',cortePlan:'28/4',corteReal:'14/5',taller:'WALDO QUISBERT',semanas:4,procesos:'proceso intermedio hebilla',fechaSalida:'18/5',estado:'EN TALLER',ingAcord:'15/6',ingReal:'4S'},
   {id:20,mes:'JUNIO',marca:'TW',linea:'NOCHE',etapa:'',codigo:'BDY314',nombre:'BODY PARTER',color:'',cant:260,qreal:0,ficha:'',compra:'',mp:'',codtw:'',materia:'',prov:'',colorprov:'',ubic:'',consumo:0,rinde:0,cantmp:0,rindereal:0,qrealmts:0,consumoreal:0,precio:2500,costo:0,total:0,planificado:'22/6',ingresoTela:'13/4',cortePlan:'4/5',corteReal:'19/5',taller:'EDUARDO CANAZZA',semanas:0,procesos:'',fechaSalida:'22/5',estado:'ENTREGADO',ingAcord:'5/6',ingReal:'5/6'},
 ];
-function initData(){if(!getData()){setData(SAMPLE);localStorage.setItem('tw_hub_nid','21');}}
+function initData(){if(!getData()){setData(SAMPLE);localStorage.setItem('tw_hub_nid','21');}migrateMateriales();}
+function nextMatId(r){return(r.materiales&&r.materiales.length?Math.max(...r.materiales.map(m=>m.id||0)):0)+1;}
+function migrateMateriales(){
+  const rows=getData()||[];let changed=false;
+  const newRows=rows.map(r=>{
+    if(Array.isArray(r.materiales))return r;
+    changed=true;
+    const mats=[];
+    if(r.materia||r.codtw||r.prov||r.consumo||r.costo){
+      mats.push({id:1,tipo:'TELA',codtw:r.codtw||'',materia:r.materia||'',prov:r.prov||'',colorprov:r.colorprov||'',
+        consumo:r.consumo||0,rinde:r.rinde||0,cantmp:r.cantmp||0,rindereal:r.rindereal||0,qrealmts:r.qrealmts||0,
+        consumoreal:r.consumoreal||0,costo:r.costo||0,total:r.total||0});
+    }
+    return{...r,materiales:mats};
+  });
+  if(changed)setData(newRows);
+}
 
 // ── UTILS ─────────────────────────────────────────────────────────
 const LC={DIA:'#b5892a',NOCHE:'#7c3aed','CÁPSULA 3':'#0d9488',DENIM:'#2563eb',PT:'#16a34a',CONTINUO:'#d97706'};
@@ -666,23 +697,22 @@ function renderCrearView(){
   const el=document.getElementById('crear-view');
   if(!rows.length){el.innerHTML='<div class="empty"><div>🔍</div><div>Sin resultados</div></div>';return;}
   el.innerHTML=`<div class="tbl-scroll"><table>
-    <thead><tr><th>Mes</th><th>Línea</th><th>Código</th><th>Artículo</th><th>Color</th><th class="r">Cant</th><th>Fase</th><th>Taller</th><th>Materia</th><th class="r">Costo/pr</th><th class="r">Total $</th><th>Ficha</th><th>Compra</th><th>MP</th><th></th></tr></thead>
-    <tbody>${rows.map(r=>`<tr>
+    <thead><tr><th>Mes</th><th>Línea</th><th>Código</th><th>Artículo</th><th>Color</th><th class="r">Cant</th><th>Fase</th><th>Taller</th><th>Componentes</th><th class="r">Total $</th><th>Ficha</th><th>Compra</th><th>MP</th><th></th></tr></thead>
+    <tbody>${rows.map(r=>{const mats=r.materiales||[];const total=mats.length?mats.reduce((a,m)=>a+(m.total||0),0):(r.total||0);return`<tr>
       <td class="mu">${r.mes||''}</td><td>${lineaBadge(r.linea)}</td>
       <td class="mu">${r.codigo||''}</td>
       <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis" title="${r.nombre}">${r.nombre||''}</td>
       <td class="mu">${r.color||''}</td><td class="r">${fmtN(r.cant||0)}</td>
       <td>${faseBadge(r)}</td>
       <td style="font-size:9px;max-width:120px;overflow:hidden;text-overflow:ellipsis">${r.taller||'—'}</td>
-      <td style="font-size:9px">${r.materia||'—'}</td>
-      <td class="r" style="color:var(--or);font-size:9px">${r.costo?fmtV(r.costo):''}</td>
-      <td class="r" style="color:var(--ac);font-weight:500;font-size:9px">${r.total?fmtV(r.total):''}</td>
+      <td style="font-size:9px">${mats.length?mats.length+' comp.':'—'}</td>
+      <td class="r" style="color:var(--ac);font-weight:500;font-size:9px">${total?fmtV(total):''}</td>
       <td>${okBadge(r.ficha)}</td><td>${okBadge(r.compra)}</td><td>${okBadge(r.mp)}</td>
       <td><div class="row-act">
         <button class="btn-sm edit" onclick="openDrawer(${r.id})">✏ Editar</button>
         <button class="btn-sm del" onclick="delArticle(${r.id})">✕</button>
       </div></td>
-    </tr>`).join('')}</tbody>
+    </tr>`;}).join('')}</tbody>
   </table></div>`;
 }
 
@@ -694,11 +724,7 @@ function openDrawer(id){
   sV('dr-etapa',r?.etapa||'');sV('dr-nombre',r?.nombre||'');sV('dr-color',r?.color||'');
   sV('dr-marca',r?.marca||'TW');sV('dr-cant',r?.cant||'');sV('dr-qreal',r?.qreal||'');
   sV('dr-ficha',r?.ficha||'');sV('dr-compra',r?.compra||'');sV('dr-mp',r?.mp||'');
-  sV('dr-codtw',r?.codtw||'');sV('dr-materia',r?.materia||'');sV('dr-prov',r?.prov||'');
-  sV('dr-colorprov',r?.colorprov||'');sV('dr-ubic',r?.ubic||'');
-  sV('dr-consumo',r?.consumo||'');sV('dr-rinde',r?.rinde||'');sV('dr-cantmp',r?.cantmp||'');
-  sV('dr-rindereal',r?.rindereal||'');sV('dr-qrealmts',r?.qrealmts||'');sV('dr-consumoreal',r?.consumoreal||'');
-  sV('dr-precio',r?.precio||'');sV('dr-costo',r?.costo||'');sV('dr-total',r?.total||'');
+  sV('dr-ubic',r?.ubic||'');sV('dr-precio',r?.precio||'');
   sV('dr-planif',r?.planificado||'');sV('dr-tela',r?.ingresoTela||'');
   sV('dr-cortep',r?.cortePlan||'');sV('dr-corter',r?.corteReal||'');
   sV('dr-taller',r?.taller||'');sV('dr-semanas',r?.semanas||'');sV('dr-procesos',r?.procesos||'');
@@ -712,25 +738,18 @@ function closeDrawer(){
   document.getElementById('drawer-overlay').classList.remove('open');
   document.getElementById('drawer').classList.remove('open');
 }
-function calcDrTotal(){
-  const c=parseFloat(gV('dr-cant'))||0,p=parseFloat(gV('dr-costo'))||0;
-  sV('dr-total',Math.round(c*p)||'');
-}
 function saveDrawer(){
   const id=gV('dr-id');
-  const cant=parseFloat(gV('dr-cant'))||0,costo=parseFloat(gV('dr-costo'))||0;
+  const cant=parseFloat(gV('dr-cant'))||0;
+  const orig=id?(getData()||[]).find(x=>x.id===parseInt(id)):null;
   const row={
     id:id?parseInt(id):nextId(),
     mes:gV('dr-mes'),marca:gV('dr-marca'),linea:gV('dr-linea'),etapa:gV('dr-etapa'),
     codigo:gV('dr-codigo'),nombre:gV('dr-nombre'),color:gV('dr-color'),
     cant,qreal:parseFloat(gV('dr-qreal'))||0,
     ficha:gV('dr-ficha'),compra:gV('dr-compra'),mp:gV('dr-mp'),
-    codtw:gV('dr-codtw'),materia:gV('dr-materia'),prov:gV('dr-prov'),
-    colorprov:gV('dr-colorprov'),ubic:gV('dr-ubic'),
-    consumo:parseFloat(gV('dr-consumo'))||0,rinde:parseFloat(gV('dr-rinde'))||0,
-    cantmp:parseFloat(gV('dr-cantmp'))||0,rindereal:parseFloat(gV('dr-rindereal'))||0,
-    qrealmts:parseFloat(gV('dr-qrealmts'))||0,consumoreal:parseFloat(gV('dr-consumoreal'))||0,
-    precio:parseFloat(gV('dr-precio'))||0,costo,total:Math.round(cant*costo),
+    ubic:gV('dr-ubic'),precio:parseFloat(gV('dr-precio'))||0,
+    materiales:orig?.materiales||[],
     planificado:gV('dr-planif'),ingresoTela:gV('dr-tela'),
     cortePlan:gV('dr-cortep'),corteReal:gV('dr-corter'),
     taller:gV('dr-taller'),semanas:parseFloat(gV('dr-semanas'))||0,procesos:gV('dr-procesos'),
@@ -851,64 +870,125 @@ function renderMtz(){
     <select class="flt" onchange="MF.linea=this.value;renderMtzView()"><option value="ALL">Todas las líneas</option>${lineas.map(l=>`<option>${l}</option>`).join('')}</select>`;
   renderMtzView();
 }
+let MTZ_OPEN=new Set();
+function toggleMtzRow(id){if(MTZ_OPEN.has(id))MTZ_OPEN.delete(id);else MTZ_OPEN.add(id);renderMtzView();}
+function matRowHtml(r){
+  const mats=r.materiales||[];
+  const sumTotal=mats.reduce((a,m)=>a+(m.total||0),0);
+  return`<tr class="mtz-detail-row${MTZ_OPEN.has(r.id)?' open':''}"><td colspan="14">
+    <div class="mtz-detail">
+      <div class="mtz-detail-hd">
+        <span class="mtz-detail-title">Componentes / Materia prima · ${r.nombre}${r.color?' · '+r.color:''}</span>
+        <button class="btn-add-sm" onclick="event.stopPropagation();openMatModal(${r.id},null)">+ Agregar componente</button>
+      </div>
+      ${!mats.length?'<div class="mtz-mat-empty">Sin componentes cargados todavía. Agregá telas, avíos, etiquetas, packaging, etc.</div>':`
+      <div class="tbl-scroll"><table class="mtz-mat-tbl" style="min-width:1180px">
+        <thead><tr><th>Tipo</th><th>Cod TW</th><th>Materia / Descripción</th><th>Proveedor</th><th>Color Prov.</th>
+        <th class="r">Cons./pr</th><th class="r">Rinde</th><th class="r">Cant MP</th><th class="r">Rinde real</th>
+        <th class="r">Q real mts</th><th class="r">Cons.real</th><th class="r">Costo/pr</th><th class="r">Total $</th><th></th></tr></thead>
+        <tbody>${mats.map(m=>`<tr>
+          <td><span class="badge" style="background:rgba(124,58,237,.1);color:var(--pu)">${m.tipo||'—'}</span></td>
+          <td class="mu">${m.codtw||''}</td>
+          <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis" title="${m.materia||''}">${m.materia||''}</td>
+          <td class="mu">${m.prov||''}</td><td class="mu">${m.colorprov||''}</td>
+          <td class="r mu">${m.consumo||0}</td><td class="r mu">${m.rinde||0}</td><td class="r mu">${m.cantmp||0}</td>
+          <td class="r mu">${m.rindereal||0}</td><td class="r mu">${m.qrealmts||0}</td><td class="r mu">${m.consumoreal||0}</td>
+          <td class="r" style="color:var(--or)">${m.costo?fmtV(m.costo):''}</td>
+          <td class="r" style="color:var(--ac);font-weight:500">${m.total?fmtV(m.total):''}</td>
+          <td><div class="row-act">
+            <button class="btn-sm edit" onclick="event.stopPropagation();openMatModal(${r.id},${m.id})">✏</button>
+            <button class="btn-sm del" onclick="event.stopPropagation();delMat(${r.id},${m.id})">🗑</button>
+          </div></td>
+        </tr>`).join('')}</tbody>
+        <tfoot><tr><td colspan="12" class="r mu" style="padding:8px 9px;font-size:9px;letter-spacing:1px;text-transform:uppercase">Total componentes</td>
+        <td class="r" style="padding:8px 9px;color:var(--ac);font-weight:600">${sumTotal?fmtV(sumTotal):'$0'}</td><td></td></tr></tfoot>
+      </table></div>`}
+    </div>
+  </td></tr>`;
+}
 function renderMtzView(){
   const rows=(getData()||[]).filter(r=>(MF.mes==='ALL'||r.mes===MF.mes)&&(MF.linea==='ALL'||r.linea===MF.linea));
   document.getElementById('mtz-count').textContent=`${rows.length} artículo${rows.length!==1?'s':''}`;
   const el=document.getElementById('mtz-view');
   if(!rows.length){el.innerHTML='<div class="empty">🔍 Sin resultados</div>';return;}
-  el.innerHTML=`<div class="tbl-scroll"><table style="min-width:1400px">
-    <thead><tr><th>Mes</th><th>Línea</th><th>Etapa</th><th>Código</th><th>Artículo</th><th>Color</th>
-    <th class="r">Cant</th><th class="r">Q Real</th><th>Ficha</th><th>Compra</th><th>MP</th>
-    <th>Materia</th><th>Proveedor</th><th>Color Prov.</th><th>Ubicación</th>
-    <th class="r">Cons./pr</th><th class="r">Rinde</th><th class="r">Cant MP</th>
-    <th class="r">Rinde real</th><th class="r">Q real mts</th><th class="r">Cons.real</th>
-    <th class="r">Precio</th><th class="r">Costo/pr</th><th class="r">Total $</th><th></th></tr></thead>
-    <tbody>${rows.map(r=>`<tr>
-      <td class="mu">${r.mes||''}</td><td>${lineaBadge(r.linea)}</td><td class="mu">${r.etapa||''}</td>
+  el.innerHTML=`<div class="tbl-scroll"><table style="min-width:1080px">
+    <thead><tr><th></th><th>Mes</th><th>Línea</th><th>Código</th><th>Artículo</th><th>Color</th>
+    <th class="r">Cant</th><th class="r">Q Real</th><th>Fecha ingreso</th><th>Ficha</th><th>Compra</th><th>MP</th><th class="r">Total $</th><th></th></tr></thead>
+    <tbody>${rows.map(r=>{
+      const mats=r.materiales||[];
+      const total=mats.length?mats.reduce((a,m)=>a+(m.total||0),0):(r.total||0);
+      return`<tr class="mtz-row${MTZ_OPEN.has(r.id)?' open':''}" onclick="toggleMtzRow(${r.id})">
+      <td><span class="mtz-chevron">▶</span></td>
+      <td class="mu">${r.mes||''}</td><td>${lineaBadge(r.linea)}</td>
       <td class="mu">${r.codigo||''}</td>
-      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis" title="${r.nombre}">${r.nombre}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${r.nombre}">${r.nombre}${mats.length?` <span class="mu">· ${mats.length} comp.</span>`:''}</td>
       <td class="mu">${r.color||''}</td>
       <td class="r">${r.cant||0}</td><td class="r mu">${r.qreal||0}</td>
+      <td class="mu">${r.ingAcord||r.planificado||''}</td>
       <td>${okBadge(r.ficha)}</td><td>${okBadge(r.compra)}</td><td>${okBadge(r.mp)}</td>
-      <td>${r.materia||''}</td><td class="mu">${r.prov||''}</td><td class="mu">${r.colorprov||''}</td><td class="mu">${r.ubic||''}</td>
-      <td class="r mu">${r.consumo||0}</td><td class="r mu">${r.rinde||0}</td><td class="r mu">${r.cantmp||0}</td>
-      <td class="r mu">${r.rindereal||0}</td><td class="r mu">${r.qrealmts||0}</td><td class="r mu">${r.consumoreal||0}</td>
-      <td class="r" style="color:var(--bl);font-size:9px">${r.precio?fmtV(r.precio):''}</td>
-      <td class="r" style="color:var(--or);font-size:9px">${r.costo?fmtV(r.costo):''}</td>
-      <td class="r" style="color:var(--ac);font-weight:500">${r.total?fmtV(r.total):''}</td>
-      <td><button class="btn-sm edit" onclick="openMtzModal(${r.id})">✏</button></td>
-    </tr>`).join('')}</tbody>
+      <td class="r" style="color:var(--ac);font-weight:500">${total?fmtV(total):''}</td>
+      <td><button class="btn-sm edit" onclick="event.stopPropagation();openMtzModal(${r.id})">✏</button></td>
+    </tr>${matRowHtml(r)}`;}).join('')}</tbody>
   </table></div>`;
 }
-function calcMmTotal(){const c=parseFloat(gV('mm-cant-hidden'))||parseFloat(gV('mm-id')&&(getData()||[]).find(x=>x.id===parseInt(gV('mm-id')))?.cant)||0;const p=parseFloat(gV('mm-costo'))||0;sV('mm-total',Math.round(c*p)||'');}
 function openMtzModal(id){
   const r=(getData()||[]).find(x=>x.id===id);if(!r)return;
   sV('mm-id',r.id);document.getElementById('mm-info').textContent=`${r.codigo||''} — ${r.nombre} · Cant: ${r.cant}`;
   sV('mm-etapa',r.etapa||'');sV('mm-color',r.color||'');sV('mm-qreal',r.qreal||'');
   sV('mm-ficha',r.ficha||'');sV('mm-compra',r.compra||'');sV('mm-mp',r.mp||'');
-  sV('mm-codtw',r.codtw||'');sV('mm-materia',r.materia||'');sV('mm-prov',r.prov||'');
-  sV('mm-colorprov',r.colorprov||'');sV('mm-ubic',r.ubic||'');
-  sV('mm-consumo',r.consumo||'');sV('mm-rinde',r.rinde||'');sV('mm-cantmp',r.cantmp||'');
-  sV('mm-rindereal',r.rindereal||'');sV('mm-qrealmts',r.qrealmts||'');sV('mm-consumoreal',r.consumoreal||'');
-  sV('mm-precio',r.precio||'');sV('mm-costo',r.costo||'');sV('mm-total',r.total||'');
+  sV('mm-ubic',r.ubic||'');sV('mm-precio',r.precio||'');
   document.getElementById('modal-mtz').classList.add('open');
 }
 function saveMtzModal(){
   const id=parseInt(gV('mm-id'));
   const rows=getData()||[];
-  const orig=rows.find(x=>x.id===id);
-  const costo=parseFloat(gV('mm-costo'))||0;
   const newRows=rows.map(r=>r.id!==id?r:{...r,
     etapa:gV('mm-etapa'),color:gV('mm-color'),qreal:parseFloat(gV('mm-qreal'))||0,
     ficha:gV('mm-ficha'),compra:gV('mm-compra'),mp:gV('mm-mp'),
-    codtw:gV('mm-codtw'),materia:gV('mm-materia'),prov:gV('mm-prov'),
-    colorprov:gV('mm-colorprov'),ubic:gV('mm-ubic'),
-    consumo:parseFloat(gV('mm-consumo'))||0,rinde:parseFloat(gV('mm-rinde'))||0,
-    cantmp:parseFloat(gV('mm-cantmp'))||0,rindereal:parseFloat(gV('mm-rindereal'))||0,
-    qrealmts:parseFloat(gV('mm-qrealmts'))||0,consumoreal:parseFloat(gV('mm-consumoreal'))||0,
-    precio:parseFloat(gV('mm-precio'))||0,costo,total:Math.round((orig?.cant||0)*costo),
+    ubic:gV('mm-ubic'),precio:parseFloat(gV('mm-precio'))||0,
   });
   setData(newRows);closeModal('modal-mtz');renderMtz();toast('Matriz actualizada ✓');
+}
+
+// ── COMPONENTES / MATERIA PRIMA (por artículo) ───────────────────
+function calcMatTotal(){const c=parseFloat(gV('mat-cantmp'))||0;const p=parseFloat(gV('mat-costo'))||0;sV('mat-total',Math.round(c*p)||'');}
+function openMatModal(articleId,matId){
+  const r=(getData()||[]).find(x=>x.id===articleId);if(!r)return;
+  const m=matId?(r.materiales||[]).find(x=>x.id===matId):null;
+  sV('mat-article-id',articleId);sV('mat-id',matId||'');
+  document.getElementById('mat-title').textContent=m?'Editar componente':'Agregar componente';
+  document.getElementById('mat-info').textContent=`${r.codigo||''} — ${r.nombre}${r.color?' · '+r.color:''}`;
+  sV('mat-tipo',m?.tipo||'TELA');sV('mat-codtw',m?.codtw||'');sV('mat-materia',m?.materia||'');
+  sV('mat-prov',m?.prov||'');sV('mat-colorprov',m?.colorprov||'');
+  sV('mat-consumo',m?.consumo||'');sV('mat-rinde',m?.rinde||'');sV('mat-cantmp',m?.cantmp||'');
+  sV('mat-rindereal',m?.rindereal||'');sV('mat-qrealmts',m?.qrealmts||'');sV('mat-consumoreal',m?.consumoreal||'');
+  sV('mat-costo',m?.costo||'');sV('mat-total',m?.total||'');
+  document.getElementById('modal-mat').classList.add('open');
+}
+function saveMatModal(){
+  const articleId=parseInt(gV('mat-article-id'));
+  const matId=gV('mat-id')?parseInt(gV('mat-id')):null;
+  const rows=getData()||[];
+  const r=rows.find(x=>x.id===articleId);if(!r)return;
+  const cantmp=parseFloat(gV('mat-cantmp'))||0,costo=parseFloat(gV('mat-costo'))||0;
+  const item={
+    id:matId||nextMatId(r),tipo:gV('mat-tipo'),codtw:gV('mat-codtw'),materia:gV('mat-materia'),
+    prov:gV('mat-prov'),colorprov:gV('mat-colorprov'),
+    consumo:parseFloat(gV('mat-consumo'))||0,rinde:parseFloat(gV('mat-rinde'))||0,cantmp,
+    rindereal:parseFloat(gV('mat-rindereal'))||0,qrealmts:parseFloat(gV('mat-qrealmts'))||0,
+    consumoreal:parseFloat(gV('mat-consumoreal'))||0,costo,total:Math.round(cantmp*costo),
+  };
+  const mats=r.materiales||[];
+  const newMats=matId?mats.map(m=>m.id===matId?item:m):[...mats,item];
+  const newRows=rows.map(x=>x.id!==articleId?x:{...x,materiales:newMats});
+  setData(newRows);closeModal('modal-mat');MTZ_OPEN.add(articleId);renderMtzView();toast(matId?'Componente actualizado ✓':'Componente agregado ✓');
+}
+function delMat(articleId,matId){
+  if(!confirm('¿Eliminar este componente?'))return;
+  const rows=getData()||[];
+  const r=rows.find(x=>x.id===articleId);if(!r)return;
+  const newRows=rows.map(x=>x.id!==articleId?x:{...x,materiales:(x.materiales||[]).filter(m=>m.id!==matId)});
+  setData(newRows);MTZ_OPEN.add(articleId);renderMtzView();toast('Componente eliminado','var(--rd)');
 }
 
 // ── CONFIG ────────────────────────────────────────────────────────
