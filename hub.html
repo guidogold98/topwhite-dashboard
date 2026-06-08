@@ -159,6 +159,12 @@ tbody td.mu{color:var(--mu);font-size:9px}
 .mtz-detail-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .mtz-detail-title{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ac);font-weight:600}
 .mtz-mat-tbl{width:100%;border-collapse:collapse;font-size:9px;background:var(--sf);border:1px solid var(--bd);border-radius:9px;overflow:hidden}
+.fc-inp{width:100%;min-width:54px;background:transparent;border:1px solid transparent;border-radius:4px;color:inherit;font-family:'DM Sans',sans-serif;font-size:9px;padding:2px 4px;outline:none;text-align:right;transition:border-color .15s}
+.fc-inp:hover,.fc-inp:focus{border-color:var(--ac);background:rgba(181,137,42,.05)}
+.fc-inp.fc-txt{text-align:left;min-width:70px}
+.fc-grp{background:rgba(37,99,235,.04)}
+.fc-grp2{background:rgba(22,163,74,.04)}
+.fc-tfoot td{padding:7px 9px;font-size:9px;font-weight:600;background:var(--sf3);border-top:2px solid var(--bd)}
 .mtz-mat-tbl th{background:var(--sf3);font-weight:500;font-size:8px;letter-spacing:.8px;text-transform:uppercase;color:var(--mu);padding:7px 9px;text-align:left;white-space:nowrap}
 .mtz-mat-tbl th.r,.mtz-mat-tbl td.r{text-align:right}
 .mtz-mat-tbl td{padding:7px 9px;border-top:1px solid var(--bd);color:var(--tx);white-space:nowrap}
@@ -348,8 +354,14 @@ tbody td.mu{color:var(--mu);font-size:9px}
     <!-- FORECAST -->
     <div class="panel" id="panel-forecast">
       <div class="panel-title">Forecast</div>
-      <div class="panel-sub">Vista comercial · fechas de ingreso, costos, precios y mark-ups</div>
-      <div class="ph"><div class="ph-icon">📈</div><div class="ph-txt">Próximamente</div><div class="ph-sub">Estamos definiendo el formato de referencia para esta sección. Cuando lo tengamos, acá vas a ver automáticamente todos los artículos de la Matriz agrupados por mes de ingreso, con su costo total (suma de componentes), precio de venta y mark-up.</div></div>
+      <div class="panel-sub">Planificación comercial · precios, canales de venta, mark-ups y valorizados — todo alimentado desde los artículos de Matriz</div>
+      <div class="tbl-wrap">
+        <div class="tbl-head">
+          <div class="tbl-title" id="fc-count">—</div>
+        </div>
+        <div class="filters" id="fc-filters"></div>
+        <div id="fc-view"></div>
+      </div>
     </div>
 
     <!-- CORTES -->
@@ -615,6 +627,7 @@ function showPanel(id){
   if(id==='dash')renderDash();
   if(id==='prod')renderProd();if(id==='mtz')renderMtz();if(id==='cfg')renderCfg();
   if(id==='proveedores')renderProveedores();if(id==='costos')renderCostos();
+  if(id==='forecast')renderForecast();
 }
 
 // ── STORAGE ───────────────────────────────────────────────────────
@@ -1289,6 +1302,128 @@ function renderCashflow(){
     </tr>`;}).join('')}</tbody>
     <tfoot><tr><td colspan="3" class="r mu" style="padding:9px 10px;font-size:9px;letter-spacing:1px;text-transform:uppercase">Total proyectado</td>
     <td class="r" style="padding:9px 10px;color:var(--ac);font-weight:700">${fmtV(keys.reduce((a,k)=>a+byProv[k].total,0))}</td><td colspan="2"></td></tr></tfoot>
+  </table></div>`;
+}
+
+// ── FORECAST ─────────────────────────────────────────────────────
+function getFc(){try{return JSON.parse(localStorage.getItem('tw_hub_fc')||'{}');}catch{return {};}}
+function setFc(v){localStorage.setItem('tw_hub_fc',JSON.stringify(v));}
+function getFcRow(id){return getFc()[String(id)]||{};}
+function saveFcField(id,field,rawVal){
+  const f=getFc();const k=String(id);
+  const isNum=['pMay','pvp','pctColor','qMay','qWeb','qVdp','qPalmOff','qArmenia','qLomitas','qLocN1'].includes(field);
+  f[k]={...f[k],[field]:isNum?(parseFloat(rawVal)||0):rawVal};
+  setFc(f);renderForecastView();
+}
+const FC_CHANNELS=[
+  {key:'qMay',label:'Mayorista',price:'pMay',vKey:'vMay',vLabel:'Val. Mayorista ($)'},
+  {key:'qWeb',label:'Web',price:'pvp',vKey:'vWeb',vLabel:'Val. Web ($)'},
+  {key:'qVdp',label:'VDP',price:'pvp',vKey:'vVdp',vLabel:'Val. VDP ($)'},
+  {key:'qPalmOff',label:'Palermo Off',price:'pvp',vKey:'vPalmOff',vLabel:'Val. Palm.Off ($)'},
+  {key:'qArmenia',label:'Armenia',price:'pvp',vKey:'vArmenia',vLabel:'Val. Armenia ($)'},
+  {key:'qLomitas',label:'Lomitas',price:'pvp',vKey:'vLomitas',vLabel:'Val. Lomitas ($)'},
+  {key:'qLocN1',label:'Loc. Nuevo 1',price:'pvp',vKey:'vLocN1',vLabel:'Val. Loc.Nvo1 ($)'},
+];
+let FF={mes:'ALL',linea:'ALL'};
+function calcFcRow(r){
+  const fc=getFcRow(r.id);
+  const preCosto=articleCostUnit(r);
+  const pMay=fc.pMay||0,pvp=fc.pvp||(r.precio||0);
+  const muMay=preCosto?(pMay/preCosto-1)*100:null;
+  const muPvp=preCosto?(pvp/preCosto-1)*100:null;
+  const muMtP=pMay?(pvp/pMay-1)*100:null;
+  const qtys=FC_CHANNELS.reduce((a,c)=>{a[c.key]=fc[c.key]||0;return a;},{});
+  const total=FC_CHANNELS.reduce((s,c)=>s+(qtys[c.key]||0),0);
+  const vals={};FC_CHANNELS.forEach(c=>{vals[c.vKey]=(c.price==='pMay'?pMay:pvp)*(qtys[c.key]||0);});
+  const valTotal=FC_CHANNELS.reduce((s,c)=>s+(vals[c.vKey]||0),0);
+  const preCostoTotal=preCosto*total;
+  return{preCosto,pMay,pvp,muMay,muPvp,muMtP,curva:fc.curva||'',observ:fc.observ||'',pctColor:fc.pctColor||0,...qtys,...vals,total,valTotal,preCostoTotal};
+}
+function renderForecast(){
+  const rows=getData()||[];
+  const meses=uniq(rows.map(r=>r.mes)),lineas=uniq(rows.map(r=>r.linea));
+  document.getElementById('fc-filters').innerHTML=`
+    <select class="flt" onchange="FF.mes=this.value;renderForecastView()"><option value="ALL">Todos los meses</option>${meses.map(m=>`<option>${m}</option>`).join('')}</select>
+    <select class="flt" onchange="FF.linea=this.value;renderForecastView()"><option value="ALL">Todas las líneas</option>${lineas.map(l=>`<option>${l}</option>`).join('')}</select>`;
+  renderForecastView();
+}
+function muFmt(v){if(v==null)return'<span class="mu">—</span>';const c=v<0?'var(--rd)':v<30?'var(--or)':'var(--gn)';return`<span style="color:${c};font-weight:500">${v.toFixed(0)}%</span>`;}
+function renderForecastView(){
+  const rows=(getData()||[]).filter(r=>(FF.mes==='ALL'||r.mes===FF.mes)&&(FF.linea==='ALL'||r.linea===FF.linea));
+  document.getElementById('fc-count').textContent=`${rows.length} artículo${rows.length!==1?'s':', agrupado por mes de ingreso'}`;
+  const el=document.getElementById('fc-view');
+  if(!rows.length){el.innerHTML='<div class="empty">🔍 Sin artículos para mostrar — creá artículos en la Matriz para verlos acá</div>';return;}
+  const calcs=rows.map(r=>({r,c:calcFcRow(r)}));
+  // Foot totals
+  const fTotal=calcs.reduce((s,x)=>s+x.c.total,0);
+  const fValTotal=calcs.reduce((s,x)=>s+x.c.valTotal,0);
+  const fPreCTotal=calcs.reduce((s,x)=>s+x.c.preCostoTotal,0);
+  const fChanTotals={};FC_CHANNELS.forEach(c=>{fChanTotals[c.key]=calcs.reduce((s,x)=>s+(x.c[c.key]||0),0);fChanTotals[c.vKey]=calcs.reduce((s,x)=>s+(x.c[c.vKey]||0),0);});
+  el.innerHTML=`<div class="tbl-scroll"><table style="min-width:2200px;font-size:9px">
+    <colgroup>
+      <col style="min-width:70px"><col style="min-width:150px"><col style="min-width:80px"><col style="min-width:70px"><col style="min-width:120px">
+      <col style="min-width:72px"><col style="min-width:72px"><col style="min-width:72px">
+      <col style="min-width:64px"><col style="min-width:64px"><col style="min-width:64px"><col style="min-width:60px">
+      ${FC_CHANNELS.map(()=>`<col style="min-width:70px">`).join('')}
+      <col style="min-width:60px">
+      ${FC_CHANNELS.map(()=>`<col style="min-width:90px">`).join('')}
+      <col style="min-width:90px"><col style="min-width:100px">
+    </colgroup>
+    <thead>
+      <tr>
+        <th colspan="5" style="text-align:left">ARTÍCULO</th>
+        <th colspan="3" style="text-align:center;background:rgba(124,58,237,.07)">PRECIOS</th>
+        <th colspan="3" style="text-align:center;background:rgba(217,119,6,.07)">MARK-UPS</th>
+        <th style="background:rgba(37,99,235,.07);text-align:center">%COL</th>
+        <th colspan="${FC_CHANNELS.length}" style="text-align:center;background:rgba(37,99,235,.07)" class="fc-grp">CANTIDADES POR CANAL</th>
+        <th style="background:rgba(37,99,235,.09)">TOTAL</th>
+        <th colspan="${FC_CHANNELS.length}" style="text-align:center;background:rgba(22,163,74,.07)" class="fc-grp2">VALORIZADO POR CANAL ($)</th>
+        <th style="background:rgba(22,163,74,.09)">VAL. TOTAL</th>
+        <th style="background:rgba(217,119,6,.07)">PRE COSTO TOTAL</th>
+      </tr>
+      <tr>
+        <th>TIPO</th><th>ARTÍCULO</th><th>COLOR</th><th>CURVA</th><th>OBSERV</th>
+        <th style="background:rgba(124,58,237,.05)">PRE COSTO</th>
+        <th style="background:rgba(124,58,237,.05)">P. MAY</th>
+        <th style="background:rgba(124,58,237,.05)">PVP</th>
+        <th style="background:rgba(217,119,6,.05)">MU MAY</th>
+        <th style="background:rgba(217,119,6,.05)">MU PVP</th>
+        <th style="background:rgba(217,119,6,.05)">MU M→P</th>
+        <th style="background:rgba(37,99,235,.05)">% COLOR</th>
+        ${FC_CHANNELS.map(c=>`<th class="fc-grp r">${c.label}</th>`).join('')}
+        <th class="r" style="background:rgba(37,99,235,.09)">TOTAL</th>
+        ${FC_CHANNELS.map(c=>`<th class="fc-grp2 r">${c.vLabel}</th>`).join('')}
+        <th class="r" style="background:rgba(22,163,74,.09)">VAL. TOTAL ($)</th>
+        <th class="r" style="background:rgba(217,119,6,.05)">PRE COSTO TOTAL ($)</th>
+      </tr>
+    </thead>
+    <tbody>${calcs.map(({r,c})=>`<tr>
+      <td>${lineaBadge(r.linea)}</td>
+      <td title="${r.nombre}" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;font-weight:500">${r.nombre}</td>
+      <td class="mu">${r.color||''}</td>
+      <td><input class="fc-inp fc-txt" value="${c.curva}" placeholder="ej: 1-2-2-1" onchange="saveFcField(${r.id},'curva',this.value)"></td>
+      <td><input class="fc-inp fc-txt" value="${c.observ}" placeholder="notas..." onchange="saveFcField(${r.id},'observ',this.value)"></td>
+      <td class="r" style="color:var(--or)">${c.preCosto?fmtV(c.preCosto):''}</td>
+      <td><input class="fc-inp" type="number" value="${c.pMay||''}" placeholder="0" onchange="saveFcField(${r.id},'pMay',this.value)"></td>
+      <td><input class="fc-inp" type="number" value="${c.pvp||''}" placeholder="${r.precio||0}" onchange="saveFcField(${r.id},'pvp',this.value)"></td>
+      <td style="text-align:center">${muFmt(c.muMay)}</td>
+      <td style="text-align:center">${muFmt(c.muPvp)}</td>
+      <td style="text-align:center">${muFmt(c.muMtP)}</td>
+      <td><input class="fc-inp" type="number" min="0" max="100" step="0.1" value="${c.pctColor||''}" placeholder="0" onchange="saveFcField(${r.id},'pctColor',this.value)"></td>
+      ${FC_CHANNELS.map(ch=>`<td class="fc-grp"><input class="fc-inp" type="number" min="0" value="${c[ch.key]||''}" placeholder="0" onchange="saveFcField(${r.id},'${ch.key}',this.value)"></td>`).join('')}
+      <td class="r" style="font-weight:600;background:rgba(37,99,235,.08)">${c.total||''}</td>
+      ${FC_CHANNELS.map(ch=>`<td class="fc-grp2 r" style="color:var(--gn)">${c[ch.vKey]?fmtV(c[ch.vKey]):''}</td>`).join('')}
+      <td class="r" style="font-weight:600;color:var(--gn);background:rgba(22,163,74,.08)">${c.valTotal?fmtV(c.valTotal):''}</td>
+      <td class="r" style="color:var(--or)">${c.preCostoTotal?fmtV(c.preCostoTotal):''}</td>
+    </tr>`).join('')}</tbody>
+    <tfoot class="fc-tfoot"><tr>
+      <td colspan="12" class="r" style="letter-spacing:.8px;text-transform:uppercase;font-size:8px;color:var(--mu)">TOTALES</td>
+      ${FC_CHANNELS.map(c=>`<td class="r">${fChanTotals[c.key]?fChanTotals[c.key]:''}</td>`).join('')}
+      <td class="r" style="background:rgba(37,99,235,.12)">${fTotal||''}</td>
+      ${FC_CHANNELS.map(c=>`<td class="r" style="color:var(--gn)">${fChanTotals[c.vKey]?fmtV(fChanTotals[c.vKey]):''}</td>`).join('')}
+      <td class="r" style="color:var(--gn)">${fValTotal?fmtV(fValTotal):''}</td>
+      <td class="r" style="color:var(--or)">${fPreCTotal?fmtV(fPreCTotal):''}</td>
+    </tr></tfoot>
   </table></div>`;
 }
 
