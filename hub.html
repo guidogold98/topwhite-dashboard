@@ -491,14 +491,18 @@ tbody td.mu{color:var(--mu);font-size:9px}
         <div class="field full"><label>Materia / Descripción</label><input id="mat-materia" placeholder="28170 MICROFIBRA PESADA COLOR"></div>
         <div class="field"><label>Proveedor</label><input id="mat-prov" placeholder="ALTER"></div>
         <div class="field"><label>Color proveedor</label><input id="mat-colorprov" placeholder="NEGRO"></div>
-        <div class="field"><label>Consumo x pr (mts)</label><input id="mat-consumo" type="number" step="0.01" placeholder="0.00"></div>
-        <div class="field"><label>Rinde</label><input id="mat-rinde" type="number" step="0.01" placeholder="0.00"></div>
-        <div class="field"><label>Cantidad MP</label><input id="mat-cantmp" type="number" placeholder="0" oninput="calcMatTotal()"></div>
+        <div class="field"><label>Consumo x prenda (mts/unid)</label><input id="mat-consumo" type="number" step="0.01" placeholder="0.00" oninput="calcMatTotal()"></div>
+        <div class="field"><label>Rinde</label><input id="mat-rinde" type="number" step="0.01" placeholder="0.00" oninput="calcMatTotal()"></div>
+        <div class="field"><label>Precio tela/avío</label><input id="mat-precio" type="number" step="0.01" placeholder="0.00" oninput="calcMatTotal()"></div>
         <div class="field"><label>Rinde real</label><input id="mat-rindereal" type="number" step="0.01" placeholder="0.00"></div>
         <div class="field"><label>Q real mts</label><input id="mat-qrealmts" type="number" step="0.01" placeholder="0.00"></div>
         <div class="field"><label>Consumo real x pr</label><input id="mat-consumoreal" type="number" step="0.01" placeholder="0.00"></div>
-        <div class="field"><label>Costo x pr</label><input id="mat-costo" type="number" placeholder="0" oninput="calcMatTotal()"></div>
-        <div class="field"><label>Total $ (auto)</label><input id="mat-total" type="number" placeholder="0" readonly></div>
+        <div class="field"><label>Cant. MP a comprar (auto)</label><input id="mat-cantmp" type="number" placeholder="0" readonly></div>
+        <div class="field"><label>Costo x prenda (auto)</label><input id="mat-costo" type="number" placeholder="0" readonly></div>
+        <div class="field"><label>Total a pagar al proveedor (auto)</label><input id="mat-total" type="number" placeholder="0" readonly></div>
+      </div>
+      <div style="margin-top:12px;padding:11px 14px;background:var(--sf2);border:1px dashed var(--bd);border-radius:9px;font-size:10px;color:var(--mu);line-height:1.6">
+        💡 Cant. MP = cantidad del artículo × consumo ÷ rinde · Costo x prenda = (consumo ÷ rinde) × precio · Total a pagar = Cant. MP × precio
       </div>
     </div>
     <div class="modal-ft">
@@ -871,16 +875,18 @@ function matRowHtml(r){
         <button class="btn-add-sm" onclick="event.stopPropagation();openMatModal(${r.id},null)">+ Agregar componente</button>
       </div>
       ${!mats.length?'<div class="mtz-mat-empty">Sin componentes cargados todavía. Agregá telas, avíos, etiquetas, packaging, etc.</div>':`
-      <div class="tbl-scroll"><table class="mtz-mat-tbl" style="min-width:1180px">
+      <div class="tbl-scroll"><table class="mtz-mat-tbl" style="min-width:1280px">
         <thead><tr><th>Tipo</th><th>Cod TW</th><th>Materia / Descripción</th><th>Proveedor</th><th>Color Prov.</th>
-        <th class="r">Cons./pr</th><th class="r">Rinde</th><th class="r">Cant MP</th><th class="r">Rinde real</th>
-        <th class="r">Q real mts</th><th class="r">Cons.real</th><th class="r">Costo/pr</th><th class="r">Total $</th><th></th></tr></thead>
+        <th class="r">Cons./pr</th><th class="r">Rinde</th><th class="r">Precio</th><th class="r">Cant MP (auto)</th><th class="r">Rinde real</th>
+        <th class="r">Q real mts</th><th class="r">Cons.real</th><th class="r">Costo/pr (auto)</th><th class="r">Total a pagar (auto)</th><th></th></tr></thead>
         <tbody>${mats.map(m=>`<tr>
           <td><span class="badge" style="background:rgba(124,58,237,.1);color:var(--pu)">${m.tipo||'—'}</span></td>
           <td class="mu">${m.codtw||''}</td>
           <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis" title="${m.materia||''}">${m.materia||''}</td>
           <td class="mu">${m.prov||''}</td><td class="mu">${m.colorprov||''}</td>
-          <td class="r mu">${m.consumo||0}</td><td class="r mu">${m.rinde||0}</td><td class="r mu">${m.cantmp||0}</td>
+          <td class="r mu">${m.consumo||0}</td><td class="r mu">${m.rinde||0}</td>
+          <td class="r mu">${m.precio?fmtV(m.precio):''}</td>
+          <td class="r mu">${m.cantmp||0}</td>
           <td class="r mu">${m.rindereal||0}</td><td class="r mu">${m.qrealmts||0}</td><td class="r mu">${m.consumoreal||0}</td>
           <td class="r" style="color:var(--or)">${m.costo?fmtV(m.costo):''}</td>
           <td class="r" style="color:var(--ac);font-weight:500">${m.total?fmtV(m.total):''}</td>
@@ -889,7 +895,7 @@ function matRowHtml(r){
             <button class="btn-sm del" onclick="event.stopPropagation();delMat(${r.id},${m.id})">🗑</button>
           </div></td>
         </tr>`).join('')}</tbody>
-        <tfoot><tr><td colspan="12" class="r mu" style="padding:8px 9px;font-size:9px;letter-spacing:1px;text-transform:uppercase">Total componentes</td>
+        <tfoot><tr><td colspan="13" class="r mu" style="padding:8px 9px;font-size:9px;letter-spacing:1px;text-transform:uppercase">Total a pagar (todos los componentes)</td>
         <td class="r" style="padding:8px 9px;color:var(--ac);font-weight:600">${sumTotal?fmtV(sumTotal):'$0'}</td><td></td></tr></tfoot>
       </table></div>`}
     </div>
@@ -925,18 +931,32 @@ function renderMtzView(){
 }
 
 // ── COMPONENTES / MATERIA PRIMA (por artículo) ───────────────────
-function calcMatTotal(){const c=parseFloat(gV('mat-cantmp'))||0;const p=parseFloat(gV('mat-costo'))||0;sV('mat-total',Math.round(c*p)||'');}
+function calcMatTotal(){
+  const articleId=parseInt(gV('mat-article-id'));
+  const r=(getData()||[]).find(x=>x.id===articleId);
+  const cantArt=r?.cant||0;
+  const consumo=parseFloat(gV('mat-consumo'))||0;
+  const rinde=parseFloat(gV('mat-rinde'))||0;
+  const precio=parseFloat(gV('mat-precio'))||0;
+  const consxrinde=rinde?(consumo/rinde):0;
+  const cantmp=cantArt*consxrinde;
+  const costo=consxrinde*precio;
+  const total=cantmp*precio;
+  sV('mat-cantmp',cantmp?+cantmp.toFixed(2):'');
+  sV('mat-costo',costo?+costo.toFixed(2):'');
+  sV('mat-total',total?Math.round(total):'');
+}
 function openMatModal(articleId,matId){
   const r=(getData()||[]).find(x=>x.id===articleId);if(!r)return;
   const m=matId?(r.materiales||[]).find(x=>x.id===matId):null;
   sV('mat-article-id',articleId);sV('mat-id',matId||'');
   document.getElementById('mat-title').textContent=m?'Editar componente':'Agregar componente';
-  document.getElementById('mat-info').textContent=`${r.codigo||''} — ${r.nombre}${r.color?' · '+r.color:''}`;
+  document.getElementById('mat-info').textContent=`${r.codigo||''} — ${r.nombre}${r.color?' · '+r.color:''} · Cant: ${r.cant||0}`;
   sV('mat-tipo',m?.tipo||'TELA');sV('mat-codtw',m?.codtw||'');sV('mat-materia',m?.materia||'');
   sV('mat-prov',m?.prov||'');sV('mat-colorprov',m?.colorprov||'');
-  sV('mat-consumo',m?.consumo||'');sV('mat-rinde',m?.rinde||'');sV('mat-cantmp',m?.cantmp||'');
+  sV('mat-consumo',m?.consumo||'');sV('mat-rinde',m?.rinde||'');sV('mat-precio',m?.precio||'');
   sV('mat-rindereal',m?.rindereal||'');sV('mat-qrealmts',m?.qrealmts||'');sV('mat-consumoreal',m?.consumoreal||'');
-  sV('mat-costo',m?.costo||'');sV('mat-total',m?.total||'');
+  sV('mat-cantmp',m?.cantmp||'');sV('mat-costo',m?.costo||'');sV('mat-total',m?.total||'');
   document.getElementById('modal-mat').classList.add('open');
 }
 function saveMatModal(){
@@ -944,13 +964,20 @@ function saveMatModal(){
   const matId=gV('mat-id')?parseInt(gV('mat-id')):null;
   const rows=getData()||[];
   const r=rows.find(x=>x.id===articleId);if(!r)return;
-  const cantmp=parseFloat(gV('mat-cantmp'))||0,costo=parseFloat(gV('mat-costo'))||0;
+  const cantArt=r.cant||0;
+  const consumo=parseFloat(gV('mat-consumo'))||0;
+  const rinde=parseFloat(gV('mat-rinde'))||0;
+  const precio=parseFloat(gV('mat-precio'))||0;
+  const consxrinde=rinde?(consumo/rinde):0;
+  const cantmp=+(cantArt*consxrinde).toFixed(2);
+  const costo=+(consxrinde*precio).toFixed(2);
+  const total=Math.round(cantmp*precio);
   const item={
     id:matId||nextMatId(r),tipo:gV('mat-tipo'),codtw:gV('mat-codtw'),materia:gV('mat-materia'),
     prov:gV('mat-prov'),colorprov:gV('mat-colorprov'),
-    consumo:parseFloat(gV('mat-consumo'))||0,rinde:parseFloat(gV('mat-rinde'))||0,cantmp,
+    consumo,rinde,precio,cantmp,
     rindereal:parseFloat(gV('mat-rindereal'))||0,qrealmts:parseFloat(gV('mat-qrealmts'))||0,
-    consumoreal:parseFloat(gV('mat-consumoreal'))||0,costo,total:Math.round(cantmp*costo),
+    consumoreal:parseFloat(gV('mat-consumoreal'))||0,costo,total,
   };
   const mats=r.materiales||[];
   const newMats=matId?mats.map(m=>m.id===matId?item:m):[...mats,item];
@@ -1013,7 +1040,8 @@ function delProv(id){
 
 // ── COSTOS ────────────────────────────────────────────────────────
 let COF={mes:'ALL'};
-function articleCost(r){return(r.materiales||[]).reduce((a,m)=>a+(m.total||0),0);}
+function articleCostUnit(r){return(r.materiales||[]).reduce((a,m)=>a+(m.costo||0),0);}
+function articleCostTotal(r){return(r.materiales||[]).reduce((a,m)=>a+(m.total||0),0);}
 function renderCostos(){
   const rows=getData()||[];
   const meses=uniq(rows.map(r=>r.mes));
@@ -1032,7 +1060,7 @@ function renderCostosView(){
       <th class="r">Costo unitario (Σ comp.)</th><th class="r">Pre-costo total</th>
       <th class="r">Precio venta</th><th class="r">Mark-up</th></tr></thead>
       <tbody>${rows.map(r=>{
-        const costoUnit=articleCost(r);const total=Math.round(costoUnit*(r.cant||0));
+        const costoUnit=articleCostUnit(r);const total=Math.round(articleCostTotal(r));
         const markup=costoUnit?((((r.precio||0)-costoUnit)/costoUnit)*100):null;
         return`<tr>
         <td class="mu">${r.mes||''}</td><td>${lineaBadge(r.linea)}</td>
@@ -1054,8 +1082,8 @@ function renderCashflow(){
   rows.forEach(r=>{
     const fecha=parseD(r.ingAcord)||parseD(r.planificado);
     (r.materiales||[]).forEach(m=>{
-      if(!m.prov||!m.costo)return;
-      const monto=Math.round((m.costo||0)*(r.cant||0));
+      if(!m.prov||!m.total)return;
+      const monto=Math.round(m.total||0);
       if(!monto)return;
       const key=m.prov.trim();
       if(!byProv[key])byProv[key]={items:[],total:0};
