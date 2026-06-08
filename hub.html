@@ -173,6 +173,11 @@ tbody td.mu{color:var(--mu);font-size:9px}
 .stock-gap-over{color:var(--rd);font-weight:600;font-size:9px}
 .stock-gap-under{color:var(--or);font-weight:600;font-size:9px}
 .stock-pending{color:var(--mu);font-style:italic;font-size:9px}
+.color-row{display:flex;gap:8px;align-items:center;margin-bottom:5px}
+.color-row input{background:var(--sf2);border:1px solid var(--bd);border-radius:8px;color:var(--tx);font-family:'DM Sans',sans-serif;font-size:12px;padding:8px 11px;outline:none;transition:border-color .2s}
+.color-row input:focus{border-color:var(--ac)}
+.color-chip{display:inline-flex;align-items:center;gap:4px;background:var(--sf3);border:1px solid var(--bd);border-radius:5px;padding:2px 7px;font-size:8px;white-space:nowrap}
+.color-chip b{color:var(--tx)}
 .mtz-mat-tbl th{background:var(--sf3);font-weight:500;font-size:8px;letter-spacing:.8px;text-transform:uppercase;color:var(--mu);padding:7px 9px;text-align:left;white-space:nowrap}
 .mtz-mat-tbl th.r,.mtz-mat-tbl td.r{text-align:right}
 .mtz-mat-tbl td{padding:7px 9px;border-top:1px solid var(--bd);color:var(--tx);white-space:nowrap}
@@ -434,10 +439,13 @@ tbody td.mu{color:var(--mu);font-size:9px}
           <select id="dr-mes"><option>ENERO</option><option>FEBRERO</option><option>MARZO</option><option>ABRIL</option><option>MAYO</option><option>JUNIO</option><option>JULIO</option><option>AGOSTO</option><option>SEPTIEMBRE</option><option>OCTUBRE</option><option>NOVIEMBRE</option><option>DICIEMBRE</option></select></div>
         <div class="field"><label>Línea *</label>
           <select id="dr-linea"><option>DIA</option><option>NOCHE</option><option>DENIM</option><option>PT</option><option>CONTINUO</option><option>CÁPSULA 3</option><option>OTRO</option></select></div>
-        <div class="field"><label>Q Estimada *</label><input id="dr-cant" type="number" min="0" placeholder="0"></div>
-        <div class="field"><label>Color</label><input id="dr-color" placeholder="NEGRO"></div>
         <div class="field"><label>Código</label><input id="dr-codigo" placeholder="TOP100"></div>
         <div class="field"><label>Fecha de ingreso (objetivo)</label><input id="dr-ingac" placeholder="ej: 22/10"></div>
+        <div class="field full">
+          <label>Colores y cantidades * <span style="color:var(--mu);font-size:8px">(hasta 5 colores)</span></label>
+          <div id="dr-colores-list" style="margin-top:6px"></div>
+          <button type="button" class="btn-add-sm" id="dr-add-color-btn" onclick="addDrawerColor()" style="margin-top:6px">+ Agregar color</button>
+        </div>
       </div>
     </div>
   </div>
@@ -532,6 +540,18 @@ tbody td.mu{color:var(--mu);font-size:9px}
     <div class="modal-ft">
       <button class="btn-cancel" onclick="closeModal('modal-mat')">Cancelar</button>
       <button class="btn-save" onclick="saveMatModal()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDITAR CANTIDADES POR CANAL (desde Matriz) -->
+<div class="modal-bg" id="modal-qedit">
+  <div class="modal" style="width:760px">
+    <div class="modal-hd"><h3 id="qe-title">Cantidades por canal</h3><button class="modal-close" onclick="closeModal('modal-qedit')">✕</button></div>
+    <div class="modal-body" id="qe-body"></div>
+    <div class="modal-ft">
+      <div style="flex:1;font-size:9px;color:var(--mu)">Los cambios se guardan automáticamente · se reflejan en Forecast y División de Stock</div>
+      <button class="btn-cancel" onclick="closeModal('modal-qedit')">Cerrar</button>
     </div>
   </div>
 </div>
@@ -631,7 +651,7 @@ function initData(){
     localStorage.setItem('tw_hub_ver','3');
   }
   if(!getData()){setData([]);localStorage.setItem('tw_hub_nid','1');}
-  migrateMateriales();migrateProcesos();
+  migrateMateriales();migrateProcesos();migrateColores();
 }
 function nextMatId(r){return(r.materiales&&r.materiales.length?Math.max(...r.materiales.map(m=>m.id||0)):0)+1;}
 function migrateMateriales(){
@@ -741,12 +761,33 @@ function renderDash(){
 }
 
 // ── DRAWER ────────────────────────────────────────────────────────
+let DR_COLORES=[{color:'',cant:0}];
+function renderDrawerColors(){
+  const list=document.getElementById('dr-colores-list');if(!list)return;
+  list.innerHTML=DR_COLORES.map((c,i)=>`
+    <div class="color-row">
+      <input style="flex:1" placeholder="Color (ej: NEGRO)" value="${c.color||''}" id="dr-c-color-${i}" oninput="DR_COLORES[${i}].color=this.value">
+      <input style="width:90px" type="number" min="0" placeholder="Cant." value="${c.cant||''}" id="dr-c-cant-${i}" oninput="DR_COLORES[${i}].cant=parseFloat(this.value)||0">
+      ${DR_COLORES.length>1?`<button type="button" onclick="removeDrawerColor(${i})" style="background:transparent;border:1px solid var(--bd);border-radius:6px;padding:5px 9px;cursor:pointer;color:var(--mu);font-size:11px">✕</button>`:''}
+    </div>`).join('');
+  const btn=document.getElementById('dr-add-color-btn');
+  if(btn)btn.style.display=DR_COLORES.length>=5?'none':'';
+}
+function addDrawerColor(){if(DR_COLORES.length>=5)return;DR_COLORES.push({color:'',cant:0});renderDrawerColors();}
+function removeDrawerColor(i){if(DR_COLORES.length<=1)return;DR_COLORES.splice(i,1);renderDrawerColors();}
+function getDrawerColors(){
+  return DR_COLORES.map((c,i)=>({
+    color:(document.getElementById(`dr-c-color-${i}`)?.value||'').trim(),
+    cant:parseFloat(document.getElementById(`dr-c-cant-${i}`)?.value)||0,
+  })).filter(c=>c.color||c.cant>0);
+}
 function openDrawer(id){
   const r=id?(getData()||[]).find(x=>x.id===id):null;
   sV('dr-id',r?.id||'');
   sV('dr-nombre',r?.nombre||'');sV('dr-mes',r?.mes||'OCTUBRE');sV('dr-linea',r?.linea||'DIA');
-  sV('dr-cant',r?.cant||'');sV('dr-color',r?.color||'');sV('dr-codigo',r?.codigo||'');
-  sV('dr-ingac',r?.ingAcord||'');
+  sV('dr-codigo',r?.codigo||'');sV('dr-ingac',r?.ingAcord||'');
+  DR_COLORES=r?.colores?.length?r.colores.map(c=>({...c})):[{color:r?.color||'',cant:r?.cant||0}];
+  renderDrawerColors();
   document.getElementById('drawer-title').textContent=r?`Editar — ${r.nombre}`:'Nuevo artículo';
   document.getElementById('drawer-overlay').classList.add('open');
   document.getElementById('drawer').classList.add('open');
@@ -759,12 +800,15 @@ function saveDrawer(){
   const id=gV('dr-id');
   const nombre=gV('dr-nombre').trim();
   if(!nombre){toast('El artículo necesita un nombre','var(--rd)');return;}
-  const cant=parseFloat(gV('dr-cant'))||0;
+  let colores=getDrawerColors();
+  if(!colores.length)colores=[{color:'',cant:0}];
+  const cant=colores.reduce((s,c)=>s+(c.cant||0),0);
+  const color=colores[0]?.color||'';
   const orig=id?(getData()||[]).find(x=>x.id===parseInt(id)):null;
   const row={
     id:id?parseInt(id):nextId(),
     nombre,mes:gV('dr-mes'),linea:gV('dr-linea'),
-    cant,color:gV('dr-color'),codigo:gV('dr-codigo'),
+    cant,color,colores,codigo:gV('dr-codigo'),
     // campos preservados/derivados — no se editan en la creación básica
     marca:orig?.marca||'TW',etapa:orig?.etapa||'',qreal:orig?.qreal||0,
     ficha:orig?.ficha||'PENDIENTE',mp:orig?.mp||'PENDIENTE',
@@ -990,6 +1034,31 @@ function saveProcModal(){
   const newRows=rows.map(x=>x.id!==articleId?x:{...x,procesos:newProcs});
   setData(newRows);closeModal('modal-proc');PROD_OPEN.add(articleId);renderProdView();toast(procId?'Proceso actualizado ✓':'Proceso agregado ✓');
 }
+function migrateColores(){
+  const rows=getData()||[];let changed=false;
+  const newRows=rows.map(r=>{
+    if(Array.isArray(r.colores))return r;
+    changed=true;
+    return{...r,colores:[{color:r.color||'',cant:r.cant||0}]};
+  });
+  if(changed)setData(newRows);
+  // migrate FC: move channel quantities from article key to article_0 key
+  const fc=getFc();let fcChanged=false;
+  const chKeys=['qMay','qWeb','qVdp','qPalmOff','qArmenia','qLomitas','qLocN1'];
+  Object.keys(fc).forEach(k=>{
+    if(k.includes('_'))return;
+    const art=fc[k];
+    const hasQty=chKeys.some(q=>art[q]!=null);
+    if(!hasQty)return;
+    const colorKey=k+'_0';
+    if(!fc[colorKey]){
+      fc[colorKey]={};chKeys.forEach(q=>{if(art[q]!=null)fc[colorKey][q]=art[q];});
+      fcChanged=true;
+    }
+    chKeys.forEach(q=>delete art[q]);fcChanged=true;
+  });
+  if(fcChanged)setFc(fc);
+}
 function delProc(articleId,procId){
   if(!confirm('¿Eliminar este proceso?'))return;
   const rows=getData()||[];
@@ -1053,23 +1122,26 @@ function renderMtzView(){
   document.getElementById('mtz-count').textContent=`${rows.length} artículo${rows.length!==1?'s':''}`;
   const el=document.getElementById('mtz-view');
   if(!rows.length){el.innerHTML='<div class="empty">🔍 Sin resultados</div>';return;}
-  el.innerHTML=`<div class="tbl-scroll"><table style="min-width:760px">
-    <thead><tr><th></th><th>Mes</th><th>Línea</th><th>Código</th><th>Artículo</th><th>Color</th>
-    <th class="r">Q Est.</th><th>Fecha ingreso</th><th>Compra</th><th class="r">Total $</th><th></th></tr></thead>
+  el.innerHTML=`<div class="tbl-scroll"><table style="min-width:800px">
+    <thead><tr><th></th><th>Mes</th><th>Línea</th><th>Código</th><th>Artículo</th><th>Colores / Cantidades</th>
+    <th class="r">Q Est. Total</th><th>Fecha ingreso</th><th>Compra</th><th class="r">Total $</th><th></th></tr></thead>
     <tbody>${rows.map(r=>{
       const mats=r.materiales||[];
       const total=mats.length?mats.reduce((a,m)=>a+(m.total||0),0):(r.total||0);
+      const colores=r.colores||[{color:r.color||'',cant:r.cant||0}];
+      const colorChips=colores.map(c=>`<span class="color-chip">${c.color||'—'}&nbsp;<b>${c.cant||0}</b></span>`).join(' ');
       return`<tr class="mtz-row${MTZ_OPEN.has(r.id)?' open':''}" onclick="toggleMtzRow(${r.id})">
       <td><span class="mtz-chevron">▶</span></td>
       <td class="mu">${r.mes||''}</td><td>${lineaBadge(r.linea)}</td>
       <td class="mu">${r.codigo||''}</td>
-      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${r.nombre}">${r.nombre}${mats.length?` <span class="mu">· ${mats.length} comp.</span>`:''}</td>
-      <td class="mu">${r.color||''}</td>
+      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis" title="${r.nombre}">${r.nombre}${mats.length?` <span class="mu">· ${mats.length} comp.</span>`:''}</td>
+      <td style="max-width:200px">${colorChips}</td>
       <td class="r">${r.cant||0}</td>
       <td class="mu">${r.ingAcord||r.planificado||''}</td>
       <td>${okBadge(r.compra)}</td>
       <td class="r" style="color:var(--ac);font-weight:500">${total?fmtV(total):''}</td>
       <td><div class="row-act">
+        <button class="btn-sm" onclick="event.stopPropagation();openQEdit(${r.id})" title="Editar cantidades por canal" style="color:var(--bl);border-color:rgba(37,99,235,.3)">📊</button>
         <button class="btn-sm edit" onclick="event.stopPropagation();openDrawer(${r.id})">✏</button>
         <button class="btn-sm del" onclick="event.stopPropagation();delArticle(${r.id})">🗑</button>
       </div></td>
@@ -1281,12 +1353,32 @@ function renderCashflow(){
 // ── FORECAST ─────────────────────────────────────────────────────
 function getFc(){try{return JSON.parse(localStorage.getItem('tw_hub_fc')||'{}');}catch{return {};}}
 function setFc(v){localStorage.setItem('tw_hub_fc',JSON.stringify(v));}
-function getFcRow(id){return getFc()[String(id)]||{};}
-function saveFcField(id,field,rawVal){
+// article-level: curva,observ,pMay,pvp,pctColor — key = String(id)
+// color-level: channel quantities — key = id_colorIdx
+function getFcArt(id){return getFc()[String(id)]||{};}
+function getFcColor(id,ci){const f=getFc();return f[`${id}_${ci}`]||(ci===0?f[String(id)]:{});}
+function getFcColorData(id,ci){
+  const a=getFcArt(id),c=getFcColor(id,ci);
+  return{curva:a.curva||'',observ:a.observ||'',pMay:a.pMay||0,pvp:a.pvp||0,pctColor:a.pctColor||0,
+    qMay:c.qMay||0,qWeb:c.qWeb||0,qVdp:c.qVdp||0,qPalmOff:c.qPalmOff||0,
+    qArmenia:c.qArmenia||0,qLomitas:c.qLomitas||0,qLocN1:c.qLocN1||0};
+}
+// backward compat alias
+function getFcRow(id){return getFcColorData(id,0);}
+function saveFcArtField(id,field,rawVal){
   const f=getFc();const k=String(id);
-  const isNum=['pMay','pvp','pctColor','qMay','qWeb','qVdp','qPalmOff','qArmenia','qLomitas','qLocN1'].includes(field);
-  f[k]={...f[k],[field]:isNum?(parseFloat(rawVal)||0):rawVal};
+  const isNum=['pMay','pvp','pctColor'].includes(field);
+  f[k]={...f[k]||{},[field]:isNum?(parseFloat(rawVal)||0):rawVal};
   setFc(f);renderForecastView();
+}
+function saveFcColorField(id,ci,field,rawVal){
+  const f=getFc();const k=`${id}_${ci}`;
+  f[k]={...f[k]||{},[field]:parseFloat(rawVal)||0};
+  setFc(f);
+}
+function saveFcField(id,field,rawVal){
+  const artFields=['curva','observ','pMay','pvp','pctColor'];
+  if(artFields.includes(field))saveFcArtField(id,field,rawVal);
 }
 const FC_CHANNELS=[
   {key:'qMay',label:'Mayorista',price:'pMay',vKey:'vMay',vLabel:'Val. Mayorista ($)'},
@@ -1298,19 +1390,19 @@ const FC_CHANNELS=[
   {key:'qLocN1',label:'Loc. Nuevo 1',price:'pvp',vKey:'vLocN1',vLabel:'Val. Loc.Nvo1 ($)'},
 ];
 let FF={mes:'ALL',linea:'ALL'};
-function calcFcRow(r){
-  const fc=getFcRow(r.id);
+function calcFcRow(r,ci=0){
+  const d=getFcColorData(r.id,ci);
   const preCosto=articleCostUnit(r);
-  const pMay=fc.pMay||0,pvp=fc.pvp||(r.precio||0);
-  const muMay=preCosto?(pMay/preCosto-1)*100:null;
-  const muPvp=preCosto?(pvp/preCosto-1)*100:null;
-  const muMtP=pMay?(pvp/pMay-1)*100:null;
-  const qtys=FC_CHANNELS.reduce((a,c)=>{a[c.key]=fc[c.key]||0;return a;},{});
+  const pMay=d.pMay||0,pvp=d.pvp||(r.precio||0);
+  const muMay=preCosto&&pMay?(pMay/preCosto-1)*100:null;
+  const muPvp=preCosto&&pvp?(pvp/preCosto-1)*100:null;
+  const muMtP=pMay&&pvp?(pvp/pMay-1)*100:null;
+  const qtys=FC_CHANNELS.reduce((a,c)=>{a[c.key]=d[c.key]||0;return a;},{});
   const total=FC_CHANNELS.reduce((s,c)=>s+(qtys[c.key]||0),0);
   const vals={};FC_CHANNELS.forEach(c=>{vals[c.vKey]=(c.price==='pMay'?pMay:pvp)*(qtys[c.key]||0);});
   const valTotal=FC_CHANNELS.reduce((s,c)=>s+(vals[c.vKey]||0),0);
   const preCostoTotal=preCosto*total;
-  return{preCosto,pMay,pvp,muMay,muPvp,muMtP,curva:fc.curva||'',observ:fc.observ||'',pctColor:fc.pctColor||0,...qtys,...vals,total,valTotal,preCostoTotal};
+  return{preCosto,pMay,pvp,muMay,muPvp,muMtP,curva:d.curva,observ:d.observ,pctColor:d.pctColor,...qtys,...vals,total,valTotal,preCostoTotal};
 }
 function renderForecast(){
   const rows=getData()||[];
@@ -1323,10 +1415,17 @@ function renderForecast(){
 function muFmt(v){if(v==null)return'<span class="mu">—</span>';const c=v<0?'var(--rd)':v<30?'var(--or)':'var(--gn)';return`<span style="color:${c};font-weight:500">${v.toFixed(0)}%</span>`;}
 function renderForecastView(){
   const rows=(getData()||[]).filter(r=>(FF.mes==='ALL'||r.mes===FF.mes)&&(FF.linea==='ALL'||r.linea===FF.linea));
-  document.getElementById('fc-count').textContent=`${rows.length} artículo${rows.length!==1?'s':', agrupado por mes de ingreso'}`;
+  const totalVariants=rows.reduce((s,r)=>s+(r.colores?.length||1),0);
+  document.getElementById('fc-count').textContent=`${rows.length} artículo${rows.length!==1?'s':''}${totalVariants>rows.length?` · ${totalVariants} variantes de color`:''}`;
+
   const el=document.getElementById('fc-view');
   if(!rows.length){el.innerHTML='<div class="empty">🔍 Sin artículos para mostrar — creá artículos en la Matriz para verlos acá</div>';return;}
-  const calcs=rows.map(r=>({r,c:calcFcRow(r)}));
+  // expand articles into article×color rows
+  const calcs=[];
+  rows.forEach(r=>{
+    const colores=r.colores||[{color:r.color||'',cant:r.cant||0}];
+    colores.forEach((clr,ci)=>calcs.push({r,clr,ci,c:calcFcRow(r,ci)}));
+  });
   // Foot totals
   const fTotal=calcs.reduce((s,x)=>s+x.c.total,0);
   const fValTotal=calcs.reduce((s,x)=>s+x.c.valTotal,0);
@@ -1370,25 +1469,29 @@ function renderForecastView(){
         <th class="r" style="background:rgba(217,119,6,.05)">PRE COSTO TOTAL ($)</th>
       </tr>
     </thead>
-    <tbody>${calcs.map(({r,c})=>`<tr>
-      <td>${lineaBadge(r.linea)}</td>
-      <td title="${r.nombre}" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;font-weight:500">${r.nombre}</td>
-      <td class="mu">${r.color||''}</td>
-      <td><input class="fc-inp fc-txt" value="${c.curva}" placeholder="ej: 1-2-2-1" onchange="saveFcField(${r.id},'curva',this.value)"></td>
-      <td><input class="fc-inp fc-txt" value="${c.observ}" placeholder="notas..." onchange="saveFcField(${r.id},'observ',this.value)"></td>
-      <td class="r" style="color:var(--or)">${c.preCosto?fmtV(c.preCosto):''}</td>
-      <td><input class="fc-inp" type="number" value="${c.pMay||''}" placeholder="0" onchange="saveFcField(${r.id},'pMay',this.value)"></td>
-      <td><input class="fc-inp" type="number" value="${c.pvp||''}" placeholder="${r.precio||0}" onchange="saveFcField(${r.id},'pvp',this.value)"></td>
-      <td style="text-align:center">${muFmt(c.muMay)}</td>
-      <td style="text-align:center">${muFmt(c.muPvp)}</td>
-      <td style="text-align:center">${muFmt(c.muMtP)}</td>
-      <td><input class="fc-inp" type="number" min="0" max="100" step="0.1" value="${c.pctColor||''}" placeholder="0" onchange="saveFcField(${r.id},'pctColor',this.value)"></td>
-      ${FC_CHANNELS.map(ch=>`<td class="fc-grp"><input class="fc-inp" type="number" min="0" value="${c[ch.key]||''}" placeholder="0" onchange="saveFcField(${r.id},'${ch.key}',this.value)"></td>`).join('')}
+    <tbody>${calcs.map(({r,clr,ci,c})=>{
+      const isFirst=ci===0;
+      const rowStyle=!isFirst?'background:rgba(0,0,0,.018)':'';
+      return`<tr style="${rowStyle}">
+      <td>${isFirst?lineaBadge(r.linea):''}</td>
+      <td title="${r.nombre}" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;${isFirst?'font-weight:500':'color:var(--mu);font-size:9px;padding-left:18px'}">
+        ${isFirst?r.nombre:`↳ ${r.nombre}`}</td>
+      <td class="mu">${clr.color||''}</td>
+      <td>${isFirst?`<input class="fc-inp fc-txt" value="${c.curva}" placeholder="ej: 1-2-2-1" onchange="saveFcField(${r.id},'curva',this.value)">`:''}</td>
+      <td>${isFirst?`<input class="fc-inp fc-txt" value="${c.observ}" placeholder="notas..." onchange="saveFcField(${r.id},'observ',this.value)">`:''}</td>
+      <td class="r" style="color:var(--or)">${isFirst&&c.preCosto?fmtV(c.preCosto):''}</td>
+      <td>${isFirst?`<input class="fc-inp" type="number" value="${c.pMay||''}" placeholder="0" onchange="saveFcField(${r.id},'pMay',this.value)">`:''}</td>
+      <td>${isFirst?`<input class="fc-inp" type="number" value="${c.pvp||''}" placeholder="${r.precio||0}" onchange="saveFcField(${r.id},'pvp',this.value)">`:''}</td>
+      <td style="text-align:center">${isFirst?muFmt(c.muMay):''}</td>
+      <td style="text-align:center">${isFirst?muFmt(c.muPvp):''}</td>
+      <td style="text-align:center">${isFirst?muFmt(c.muMtP):''}</td>
+      <td>${isFirst?`<input class="fc-inp" type="number" min="0" max="100" step="0.1" value="${c.pctColor||''}" placeholder="0" onchange="saveFcField(${r.id},'pctColor',this.value)">`:''}</td>
+      ${FC_CHANNELS.map(ch=>`<td class="fc-grp"><input class="fc-inp" type="number" min="0" value="${c[ch.key]||''}" placeholder="0" onchange="saveFcColorField(${r.id},${ci},'${ch.key}',this.value);renderForecastView()"></td>`).join('')}
       <td class="r" style="font-weight:600;background:rgba(37,99,235,.08)">${c.total||''}</td>
       ${FC_CHANNELS.map(ch=>`<td class="fc-grp2 r" style="color:var(--gn)">${c[ch.vKey]?fmtV(c[ch.vKey]):''}</td>`).join('')}
       <td class="r" style="font-weight:600;color:var(--gn);background:rgba(22,163,74,.08)">${c.valTotal?fmtV(c.valTotal):''}</td>
       <td class="r" style="color:var(--or)">${c.preCostoTotal?fmtV(c.preCostoTotal):''}</td>
-    </tr>`).join('')}</tbody>
+    </tr>`;}).join('')}</tbody>
     <tfoot class="fc-tfoot"><tr>
       <td colspan="12" class="r" style="letter-spacing:.8px;text-transform:uppercase;font-size:8px;color:var(--mu)">TOTALES</td>
       ${FC_CHANNELS.map(c=>`<td class="r">${fChanTotals[c.key]?fChanTotals[c.key]:''}</td>`).join('')}
@@ -1426,11 +1529,14 @@ function renderStockView(){
   const channels=FC_CHANNELS.map(c=>({key:c.key,label:c.label}));
   el.innerHTML=mesesOrden.map(mes=>{
     const arts=groups[mes];
-    const mesTotal=arts.reduce((s,r)=>{const fc=getFcRow(r.id);return s+channels.reduce((a,c)=>a+(fc[c.key]||0),0);},0);
+    const mesTotal=arts.reduce((s,r)=>{const cls=r.colores||[{color:r.color||'',cant:r.cant||0}];return s+channels.reduce((a,c)=>a+cls.reduce((t,_,ci)=>t+(getFcColor(r.id,ci)[c.key]||0),0),0);},0);
     const rows2=arts.map(r=>{
-      const fc=getFcRow(r.id);
+      const colores=r.colores||[{color:r.color||'',cant:r.cant||0}];
       const cant=r.cant||0;
-      const qtys=channels.map(c=>({...c,qty:fc[c.key]||0}));
+      const qtys=channels.map(c=>{
+        const qty=colores.reduce((s,_,ci)=>s+(getFcColor(r.id,ci)[c.key]||0),0);
+        return{...c,qty};
+      });
       const fcTotal=qtys.reduce((s,c)=>s+c.qty,0);
       const gap=cant-fcTotal;
       const hasFc=fcTotal>0;
@@ -1471,7 +1577,7 @@ function renderStockView(){
         <tbody>${rows2}</tbody>
         <tfoot><tr>
           <td colspan="4" class="r mu" style="padding:7px 9px;font-size:8px;letter-spacing:.8px;text-transform:uppercase;background:var(--sf2)">Totales ${mes}</td>
-          ${channels.map(c=>{const t=arts.reduce((s,r)=>s+(getFcRow(r.id)[c.key]||0),0);return`<td class="r" style="padding:7px 9px;font-weight:600;background:var(--sf2);color:${CH_COLORS[c.label]||'#9a8f87'}">${t||''}</td>`;}).join('')}
+          ${channels.map(c=>{const t=arts.reduce((s,r)=>{const cls=r.colores||[{color:r.color||'',cant:r.cant||0}];return s+cls.reduce((a,_,ci)=>a+(getFcColor(r.id,ci)[c.key]||0),0);},0);return`<td class="r" style="padding:7px 9px;font-weight:600;background:var(--sf2);color:${CH_COLORS[c.label]||'#9a8f87'}">${t||''}</td>`;}).join('')}
           <td class="r" style="padding:7px 9px;font-weight:700;color:var(--ac);background:var(--sf2)">${fmtN(mesTotal)}</td>
           <td colspan="2" style="background:var(--sf2)"></td>
         </tr></tfoot>
@@ -1489,6 +1595,53 @@ function renderStockView(){
   </div>`;
 }
 
+// ── EDICIÓN RÁPIDA DE CANTIDADES (desde Matriz) ───────────────────
+function openQEdit(articleId){
+  const r=(getData()||[]).find(x=>x.id===articleId);if(!r)return;
+  const colores=r.colores||[{color:r.color||'',cant:r.cant||0}];
+  document.getElementById('qe-title').textContent=`${r.nombre} — Cantidades por canal`;
+  const body=document.getElementById('qe-body');
+  body.innerHTML=`
+  <div style="font-size:9px;color:var(--mu);margin-bottom:12px">
+    ${lineaBadge(r.linea)} <b style="margin-left:4px">${r.mes||''}</b>
+    ${r.ingAcord?` · Ingreso: <b style="color:var(--ac)">${r.ingAcord}</b>`:''}
+    · Q total producción: <b>${fmtN(r.cant||0)}</b>
+  </div>
+  <div class="tbl-scroll"><table class="mtz-mat-tbl" style="min-width:620px">
+    <thead><tr><th>Color</th><th class="r">Q prod.</th>
+      ${FC_CHANNELS.map(c=>`<th class="r"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${CH_COLORS[c.label]||'#9a8f87'};margin-right:4px"></span>${c.label}</th>`).join('')}
+      <th class="r">Total</th><th class="r">Gap</th>
+    </tr></thead>
+    <tbody>${colores.map((clr,ci)=>{
+      const d=getFcColorData(articleId,ci);
+      const qtys=FC_CHANNELS.map(ch=>d[ch.key]||0);
+      const fcTotal=qtys.reduce((s,v)=>s+v,0);
+      const gap=clr.cant-fcTotal;
+      return`<tr>
+        <td style="font-weight:500">${clr.color||'(sin color)'}</td>
+        <td class="r mu">${clr.cant||0}</td>
+        ${FC_CHANNELS.map((ch,i)=>`<td class="r">
+          <input class="fc-inp" type="number" min="0" value="${qtys[i]||''}" placeholder="0"
+                 onchange="saveFcColorField(${articleId},${ci},'${ch.key}',this.value);refreshQEditRow(this,${articleId},${ci})"
+                 style="width:58px">
+        </td>`).join('')}
+        <td class="r" style="font-weight:600;color:var(--ac)" id="qe-tot-${ci}">${fcTotal||0}</td>
+        <td class="r" id="qe-gap-${ci}">${gap===0?'<span class="stock-gap-ok">✓</span>':gap>0?`<span class="stock-gap-under">−${fmtN(gap)}</span>`:`<span class="stock-gap-over">+${fmtN(Math.abs(gap))}</span>`}</td>
+      </tr>`;}).join('')}
+    </tbody>
+  </table></div>`;
+  document.getElementById('modal-qedit').classList.add('open');
+}
+function refreshQEditRow(input,articleId,ci){
+  const r=(getData()||[]).find(x=>x.id===articleId);if(!r)return;
+  const colores=r.colores||[{color:r.color||'',cant:r.cant||0}];
+  const d=getFcColorData(articleId,ci);
+  const fcTotal=FC_CHANNELS.reduce((s,ch)=>s+(d[ch.key]||0),0);
+  const gap=(colores[ci]?.cant||0)-fcTotal;
+  const totEl=document.getElementById(`qe-tot-${ci}`);if(totEl)totEl.textContent=fcTotal||0;
+  const gapEl=document.getElementById(`qe-gap-${ci}`);
+  if(gapEl)gapEl.innerHTML=gap===0?'<span class="stock-gap-ok">✓</span>':gap>0?`<span class="stock-gap-under">−${fmtN(gap)}</span>`:`<span class="stock-gap-over">+${fmtN(Math.abs(gap))}</span>`;
+}
 // ── CONFIG ────────────────────────────────────────────────────────
 const RDESC={admin:'Acceso completo',produccion:'Producción + Cortes + Stock',producto:'Creación + Matriz + Cortes',compras:'Matriz + Stock',deposito:'Solo División de Stock'};
 function renderCfg(){
