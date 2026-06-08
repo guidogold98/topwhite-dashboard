@@ -149,6 +149,8 @@ tbody td.mu{color:var(--mu);font-size:9px}
 
 /* MATRIZ EXPANDABLE */
 .mtz-row{cursor:pointer}
+.row-ingresado>td{background:rgba(22,163,74,.08)!important}
+.row-ingresado:hover>td{background:rgba(22,163,74,.14)!important}
 .mtz-chevron{display:inline-block;transition:transform .2s;color:var(--mu);font-size:9px;margin-right:6px}
 .mtz-row.open .mtz-chevron{transform:rotate(90deg);color:var(--ac)}
 .mtz-detail-row td{padding:0;background:var(--sf2)}
@@ -458,15 +460,14 @@ tbody td.mu{color:var(--mu);font-size:9px}
         <div class="field"><label>Ingreso tela</label><input id="mp-tela" placeholder="30/4"></div>
         <div class="field"><label>Corte planificado</label><input id="mp-cortep" placeholder="21/4"></div>
         <div class="field"><label>Corte real</label><input id="mp-corter" placeholder="8/5"></div>
-        <div class="field"><label>Taller</label><input id="mp-taller" placeholder="RONALD QUISBERT"></div>
-        <div class="field"><label>Semanas de confección</label><input id="mp-semanas" type="number" min="0" placeholder="3"></div>
-        <div class="field full"><label>Procesos / notas</label><input id="mp-procesos" placeholder="Ej: estampa → costura"></div>
-        <div class="field"><label>Fecha salida taller</label><input id="mp-salida" placeholder="13/5"></div>
-        <div class="field"><label>Estado</label>
+        <div class="field"><label>Estado general</label>
           <select id="mp-estado"><option value="">— sin producción —</option><option>EN TALLER</option><option>ENTREGADO</option><option>DEMORADO</option><option>PENDIENTE</option></select></div>
         <div class="field"><label>Precio venta</label><input id="mp-precio" type="number" placeholder="0"></div>
         <div class="field"><label>Ingreso acordado</label><input id="mp-ingac" placeholder="4/6"></div>
         <div class="field"><label>Ingreso real</label><input id="mp-ingre" placeholder="8/6 ó 3S"></div>
+      </div>
+      <div style="margin-top:12px;padding:11px 14px;background:var(--sf2);border:1px dashed var(--bd);border-radius:9px;font-size:10px;color:var(--mu);line-height:1.6">
+        💡 Los talleres y semanas de cada proceso (corte, confección, estampa, bordado, etc.) se cargan por separado, desplegando la fila del artículo en la tabla de Producción — así un mismo artículo puede pasar por varios talleres.
       </div>
     </div>
     <div class="modal-ft">
@@ -476,8 +477,32 @@ tbody td.mu{color:var(--mu);font-size:9px}
   </div>
 </div>
 
-<!-- MODAL EDITAR MATRIZ (solo campos de materia prima/costos) -->
-<!-- MODAL: COMPONENTE / MATERIA PRIMA -->
+<!-- MODAL: PROCESO DE PRODUCCIÓN (taller por proceso) -->
+<div class="modal-bg" id="modal-proc">
+  <div class="modal">
+    <div class="modal-hd"><h3 id="proc-title">Agregar proceso</h3><button class="modal-close" onclick="closeModal('modal-proc')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="proc-article-id"><input type="hidden" id="proc-id">
+      <div style="margin-bottom:14px;padding:10px 12px;background:var(--sf2);border-radius:8px;font-size:11px;color:var(--mu)" id="proc-info"></div>
+      <div class="fgrid">
+        <div class="field"><label>Proceso</label><input id="proc-nombre" placeholder="Ej: Corte / Confección / Estampa / Bordado"></div>
+        <div class="field"><label>Semanas de duración</label><input id="proc-semanas" type="number" step="0.5" min="0" placeholder="2" oninput="calcProcFin()"></div>
+        <div class="field"><label>Fecha de inicio (planificada)</label><input id="proc-inicio" placeholder="ej: 12/6" oninput="calcProcFin()"></div>
+        <div class="field"><label>Fecha estimada de fin (auto)</label><input id="proc-fin" placeholder="—" readonly></div>
+        <div class="field full"><label>Taller asignado</label><input id="proc-taller" placeholder="Dejalo vacío hasta confirmar disponibilidad — RONALD QUISBERT"></div>
+        <div class="field"><label>Estado</label>
+          <select id="proc-estado"><option value="">PLANIFICADO</option><option>EN TALLER</option><option>ENTREGADO</option><option>DEMORADO</option><option>PENDIENTE</option></select></div>
+      </div>
+      <div style="margin-top:10px;padding:10px 12px;background:var(--sf2);border:1px dashed var(--bd);border-radius:9px;font-size:10px;color:var(--mu);line-height:1.6">
+        💡 Podés cargar el proceso solo con las semanas y la fecha de inicio para saber cuándo terminaría, y asignar el taller más adelante según disponibilidad — el Gantt se va a actualizar solo.
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-cancel" onclick="closeModal('modal-proc')">Cancelar</button>
+      <button class="btn-save" onclick="saveProcModal()">Guardar</button>
+    </div>
+  </div>
+</div>
 <div class="modal-bg" id="modal-mat">
   <div class="modal">
     <div class="modal-hd"><h3 id="mat-title">Agregar componente</h3><button class="modal-close" onclick="closeModal('modal-mat')">✕</button></div>
@@ -620,7 +645,7 @@ const SAMPLE=[
   {id:19,mes:'JUNIO',marca:'TW',linea:'NOCHE',etapa:'',codigo:'SHT166',nombre:'SHORT DANK',color:'',cant:300,qreal:0,ficha:'',compra:'',mp:'',codtw:'',materia:'',prov:'',colorprov:'',ubic:'',consumo:0,rinde:0,cantmp:0,rindereal:0,qrealmts:0,consumoreal:0,precio:0,costo:0,total:0,planificado:'22/6',ingresoTela:'',cortePlan:'28/4',corteReal:'14/5',taller:'WALDO QUISBERT',semanas:4,procesos:'proceso intermedio hebilla',fechaSalida:'18/5',estado:'EN TALLER',ingAcord:'15/6',ingReal:'4S'},
   {id:20,mes:'JUNIO',marca:'TW',linea:'NOCHE',etapa:'',codigo:'BDY314',nombre:'BODY PARTER',color:'',cant:260,qreal:0,ficha:'',compra:'',mp:'',codtw:'',materia:'',prov:'',colorprov:'',ubic:'',consumo:0,rinde:0,cantmp:0,rindereal:0,qrealmts:0,consumoreal:0,precio:2500,costo:0,total:0,planificado:'22/6',ingresoTela:'13/4',cortePlan:'4/5',corteReal:'19/5',taller:'EDUARDO CANAZZA',semanas:0,procesos:'',fechaSalida:'22/5',estado:'ENTREGADO',ingAcord:'5/6',ingReal:'5/6'},
 ];
-function initData(){if(!getData()){setData(SAMPLE);localStorage.setItem('tw_hub_nid','21');}migrateMateriales();}
+function initData(){if(!getData()){setData(SAMPLE);localStorage.setItem('tw_hub_nid','21');}migrateMateriales();migrateProcesos();}
 function nextMatId(r){return(r.materiales&&r.materiales.length?Math.max(...r.materiales.map(m=>m.id||0)):0)+1;}
 function migrateMateriales(){
   const rows=getData()||[];let changed=false;
@@ -634,6 +659,21 @@ function migrateMateriales(){
         consumoreal:r.consumoreal||0,costo:r.costo||0,total:r.total||0});
     }
     return{...r,materiales:mats};
+  });
+  if(changed)setData(newRows);
+}
+function nextProcId(r){return(r.procesos&&r.procesos.length?Math.max(...r.procesos.map(p=>p.id||0)):0)+1;}
+function migrateProcesos(){
+  const rows=getData()||[];let changed=false;
+  const newRows=rows.map(r=>{
+    if(Array.isArray(r.procesos))return r;
+    changed=true;
+    const procs=[];
+    if(r.taller||r.semanas||r.fechaSalida){
+      procs.push({id:1,nombre:(typeof r.procesos==='string'&&r.procesos)||'Confección',taller:r.taller||'',
+        semanas:r.semanas||0,inicio:r.cortePlan||r.ingresoTela||'',estado:r.estado||''});
+    }
+    return{...r,procesos:procs};
   });
   if(changed)setData(newRows);
 }
@@ -658,6 +698,8 @@ function fmtV(n){return'$'+Math.round(n).toLocaleString('es-AR');}
 function parseD(s){if(!s||typeof s!=='string')return null;const m=s.match(/^(\d{1,2})\/(\d{1,2})$/);if(!m)return null;return new Date(2026,+m[2]-1,+m[1]);}
 const TODAY=new Date();
 function diffD(a,b){return Math.round((a-b)/86400000);}
+function fmtDM(d){return d?`${d.getDate()}/${d.getMonth()+1}`:'';}
+function addWeeks(dateStr,weeks){const d=parseD(dateStr);if(!d||!weeks)return null;return new Date(d.getTime()+Math.round(weeks*7)*86400000);}
 function gV(id){const e=document.getElementById(id);return e?e.value:'';}
 function sV(id,v){const e=document.getElementById(id);if(e)e.value=(v??'');}
 function uniq(arr){return[...new Set(arr)].filter(Boolean).sort();}
@@ -701,11 +743,11 @@ function renderDash(){
   const lineas={};rows.forEach(r=>{const l=r.linea||'OTRO';lineas[l]=(lineas[l]||0)+1;});
   const lk=Object.keys(lineas);
   mkChart('ch-linea','bar',{labels:lk,datasets:[{data:lk.map(k=>lineas[k]),backgroundColor:lk.map(k=>LC[k]||'#9a8f87'),borderRadius:4,borderWidth:0}]},{extra:{plugins:{legend:{display:false}}}});
-  const talleres={};rows.filter(r=>r.estado==='EN TALLER'&&r.taller).forEach(r=>{talleres[r.taller]=(talleres[r.taller]||0)+1;});
+  const talleres={};rows.forEach(r=>(r.procesos||[]).forEach(p=>{if(p.estado==='EN TALLER'&&p.taller)talleres[p.taller]=(talleres[p.taller]||0)+1;}));
   const tk=Object.entries(talleres).sort((a,b)=>b[1]-a[1]).slice(0,7);
   mkChart('ch-taller','bar',{labels:tk.map(e=>e[0]),datasets:[{data:tk.map(e=>e[1]),backgroundColor:'rgba(124,58,237,.5)',borderRadius:4,borderWidth:0}]},{extra:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#9a8f87',font:{size:8}},grid:{color:'rgba(0,0,0,0.05)'}},y:{ticks:{color:'#9a8f87',font:{size:8}},grid:{display:false}}}}});
   const al=document.getElementById('dash-alerts');
-  al.innerHTML=!demorados.length?'<div style="font-size:11px;color:var(--mu);padding:8px 0">Sin alertas activas ✓</div>':demorados.slice(0,6).map(r=>`<div class="alert-item"><div class="alert-dot"></div><div><div class="alert-text">${r.nombre}</div><div class="alert-meta">Corte plan: ${r.cortePlan||'—'} · ${r.taller||'Sin taller'}</div></div></div>`).join('');
+  al.innerHTML=!demorados.length?'<div style="font-size:11px;color:var(--mu);padding:8px 0">Sin alertas activas ✓</div>':demorados.slice(0,6).map(r=>{const t=(r.procesos||[]).map(p=>p.taller).filter(Boolean)[0];return`<div class="alert-item"><div class="alert-dot"></div><div><div class="alert-text">${r.nombre}</div><div class="alert-meta">Corte plan: ${r.cortePlan||'—'} · ${t||'Sin taller'}</div></div></div>`;}).join('');
   const up=document.getElementById('dash-upcoming');
   const upcoming=rows.filter(r=>r.ingAcord&&r.estado!=='ENTREGADO').map(r=>({...r,d:parseD(r.ingAcord)})).filter(r=>r.d).sort((a,b)=>a.d-b.d).slice(0,7);
   up.innerHTML=!upcoming.length?'<div style="font-size:11px;color:var(--mu)">Sin fechas próximas</div>':upcoming.map(r=>{const dd=diffD(r.d,TODAY);const c=dd<0?'var(--rd)':dd<=5?'var(--or)':'var(--gn)';return`<div class="up-item"><span class="up-name" title="${r.nombre}">${r.nombre}</span><span class="up-date">${r.ingAcord}</span><span class="up-days" style="color:${c}">${dd===0?'HOY':dd<0?Math.abs(dd)+'d atrás':'en '+dd+'d'}</span></div>`;}).join('');
@@ -784,59 +826,93 @@ function renderProdView(){
   if(PV==='gantt'){renderGantt(rows,el);return;}
   if(!rows.length){el.innerHTML='<div class="empty">🔍 Sin resultados</div>';return;}
   el.innerHTML=`<div class="tbl-scroll"><table>
-    <thead><tr><th>Línea</th><th>Código</th><th>Artículo</th><th class="r">Cant</th><th>Tela</th><th>Corte Plan.</th><th>Corte Real</th><th>Taller</th><th class="r">Semanas</th><th>Procesos</th><th>F. Salida</th><th>Estado</th><th>Ing. Acord.</th><th>Ing. Real</th><th class="r">Precio</th><th></th></tr></thead>
-    <tbody>${rows.map(r=>`<tr>
+    <thead><tr><th></th><th>Línea</th><th>Código</th><th>Artículo</th><th class="r">Cant</th><th>Corte Plan.</th>
+    <th>Procesos / Talleres</th><th>Estado</th><th>Ing. Acordado</th><th style="text-align:center">Ingresado</th><th class="r">Precio</th><th></th></tr></thead>
+    <tbody>${rows.map(r=>{
+      const procs=r.procesos||[];
+      const talleres=uniq(procs.map(p=>p.taller));
+      const sinAsignar=procs.filter(p=>!p.taller).length;
+      return`<tr class="mtz-row${PROD_OPEN.has(r.id)?' open':''}${r.ingresado?' row-ingresado':''}" onclick="toggleProdRow(${r.id})">
+      <td><span class="mtz-chevron">▶</span></td>
       <td>${lineaBadge(r.linea)}</td><td class="mu">${r.codigo||''}</td>
       <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis" title="${r.nombre}">${r.nombre}</td>
       <td class="r">${fmtN(r.cant||0)}</td>
-      <td class="mu">${r.ingresoTela||''}</td><td class="mu">${r.cortePlan||''}</td><td class="mu">${r.corteReal||''}</td>
-      <td style="font-size:9px;max-width:120px;overflow:hidden;text-overflow:ellipsis">${r.taller||''}</td>
-      <td class="r mu">${r.semanas||''}</td>
-      <td style="font-size:9px;max-width:110px;overflow:hidden;text-overflow:ellipsis;color:var(--mu)">${r.procesos||''}</td>
-      <td class="mu">${r.fechaSalida||''}</td>
+      <td class="mu">${r.cortePlan||''}</td>
+      <td style="font-size:9px;max-width:170px">
+        ${!procs.length?'<span class="mu">Sin procesos cargados</span>':
+          `<span style="color:var(--ac);font-weight:500">${procs.length} proceso${procs.length!==1?'s':''}</span>
+           ${talleres.length?` · ${talleres.slice(0,2).join(', ')}${talleres.length>2?'…':''}`:''}
+           ${sinAsignar?` <span style="color:var(--or)">· ${sinAsignar} sin taller</span>`:''}`}
+      </td>
       <td>${estadoBadge(r.estado)}</td>
       <td style="color:var(--ac);font-weight:500;font-size:10px">${r.ingAcord||''}</td>
-      <td class="mu">${r.ingReal||''}</td>
+      <td style="text-align:center" onclick="event.stopPropagation();toggleIngresado(${r.id})">
+        ${r.ingresado?'<span class="badge" style="background:rgba(22,163,74,.15);color:var(--gn);cursor:pointer">✓ INGRESADO</span>':'<span class="badge" style="background:var(--sf2);color:var(--mu);cursor:pointer;border:1px dashed var(--bd)">marcar ingreso</span>'}
+      </td>
       <td class="r" style="color:var(--bl);font-size:9px">${r.precio?fmtV(r.precio):''}</td>
-      <td><button class="btn-sm edit" onclick="openProdModal(${r.id})">✏</button></td>
-    </tr>`).join('')}</tbody>
+      <td><button class="btn-sm edit" onclick="event.stopPropagation();openProdModal(${r.id})">✏</button></td>
+    </tr>${procRowHtml(r)}`;}).join('')}</tbody>
   </table></div>`;
 }
+const ESTADO_COLOR={'':'#9a8f87',PLANIFICADO:'#9a8f87',PENDIENTE:'#d97706','EN TALLER':'#2563eb',DEMORADO:'#dc2626',ENTREGADO:'#16a34a'};
 function renderGantt(rows,el){
-  const allD=rows.flatMap(r=>[r.ingresoTela,r.cortePlan,r.fechaSalida,r.ingAcord].map(parseD).filter(Boolean));
-  if(!allD.length){el.innerHTML='<div class="empty">Sin fechas para Gantt</div>';return;}
+  const items=[];
+  rows.forEach(r=>{
+    (r.procesos||[]).forEach(p=>{
+      const ini=parseD(p.inicio),fin=addWeeks(p.inicio,p.semanas)||ini;
+      if(ini)items.push({r,p,ini,fin:fin||ini});
+    });
+  });
+  const ingD=rows.map(r=>parseD(r.ingAcord)).filter(Boolean);
+  const allD=[...items.flatMap(i=>[i.ini,i.fin]),...ingD];
+  if(!allD.length){el.innerHTML='<div class="empty">Cargá fechas de inicio en los procesos (o fecha de ingreso) para ver el Gantt</div>';return;}
   const minD=new Date(Math.min(...allD)),maxD=new Date(Math.max(...allD));
   const span=Math.max(diffD(maxD,minD),1);
   const pct=d=>{if(!d)return null;return Math.max(0,Math.min(100,diffD(d,minD)/span*100));};
   const tp=pct(TODAY);
+  // marcas de mes
+  const months=[];
+  let cur=new Date(minD.getFullYear(),minD.getMonth(),1);
+  while(cur<=maxD){months.push(new Date(cur));cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);}
+  const MESES=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
   el.innerHTML=`<div class="gantt-wrap">
     <div class="gantt-legend">
-      <div class="gl"><div class="gl-dot" style="background:#2563eb"></div>Tela→Corte</div>
-      <div class="gl"><div class="gl-dot" style="background:#7c3aed"></div>Corte→Salida</div>
-      <div class="gl"><div class="gl-dot" style="background:#16a34a"></div>Salida→Ingreso</div>
+      <div class="gl"><div class="gl-dot" style="background:${ESTADO_COLOR['']}"></div>Planificado</div>
+      <div class="gl"><div class="gl-dot" style="background:${ESTADO_COLOR.PENDIENTE}"></div>Pendiente</div>
+      <div class="gl"><div class="gl-dot" style="background:${ESTADO_COLOR['EN TALLER']}"></div>En taller</div>
+      <div class="gl"><div class="gl-dot" style="background:${ESTADO_COLOR.DEMORADO}"></div>Demorado</div>
+      <div class="gl"><div class="gl-dot" style="background:${ESTADO_COLOR.ENTREGADO}"></div>Entregado</div>
+      <div class="gl"><div class="gl-dot" style="background:var(--gn);box-shadow:0 0 0 2px rgba(22,163,74,.25)"></div>Artículo INGRESADO ✓</div>
+    </div>
+    <div class="gantt-row" style="margin-bottom:10px">
+      <div class="gantt-label"></div>
+      <div class="gantt-track" style="background:transparent;height:auto">
+        ${months.map(m=>{const p=pct(m);return p==null?'':`<div style="position:absolute;left:${p}%;top:0;font-size:8px;letter-spacing:1px;color:var(--mu);border-left:1px dashed var(--bd);padding-left:4px">${MESES[m.getMonth()]}</div>`;}).join('')}
+      </div>
+      <div class="gantt-datecol"></div>
     </div>
     ${rows.map(r=>{
-      const p1=pct(parseD(r.ingresoTela)),p2=pct(parseD(r.cortePlan)),p3=pct(parseD(r.fechaSalida)),p4=pct(parseD(r.ingAcord));
+      const procs=(r.procesos||[]).map(p=>{const ini=parseD(p.inicio);const fin=addWeeks(p.inicio,p.semanas)||ini;return{p,p1:pct(ini),p2:pct(fin)};}).filter(x=>x.p1!=null&&x.p2!=null);
+      const pIng=pct(parseD(r.ingAcord));
       return`<div class="gantt-row">
-        <div class="gantt-label" title="${r.nombre}">${r.codigo||r.nombre?.substring(0,14)||''}</div>
-        <div class="gantt-track">
-          ${p1!=null&&p2!=null?`<div class="gantt-bar" style="left:${p1}%;width:${Math.max(.5,p2-p1)}%;background:#2563eb;opacity:.55"></div>`:''}
-          ${p2!=null&&p3!=null?`<div class="gantt-bar" style="left:${p2}%;width:${Math.max(.5,p3-p2)}%;background:#7c3aed;opacity:.55"></div>`:''}
-          ${p3!=null&&p4!=null?`<div class="gantt-bar" style="left:${p3}%;width:${Math.max(.5,p4-p3)}%;background:#16a34a;opacity:.55"></div>`:''}
+        <div class="gantt-label" title="${r.nombre} · ${r.procesos&&r.procesos.length?r.procesos.map(p=>`${p.nombre}${p.taller?' ('+p.taller+')':''}`).join(' → '):'sin procesos cargados'}" style="${r.ingresado?'color:var(--gn);font-weight:600':''}">${r.ingresado?'✓ ':''}${r.codigo||r.nombre?.substring(0,14)||''}</div>
+        <div class="gantt-track" style="${r.ingresado?'box-shadow:inset 0 0 0 1px rgba(22,163,74,.35);background:rgba(22,163,74,.07)':''}">
+          ${procs.map(({p,p1,p2})=>`<div class="gantt-bar" title="${p.nombre}${p.taller?' · '+p.taller:''} · ${estadoLabel(p.estado)}" style="left:${p1}%;width:${Math.max(.6,p2-p1)}%;background:${ESTADO_COLOR[p.estado]||ESTADO_COLOR['']};opacity:.7"></div>`).join('')}
+          ${pIng!=null?`<div class="gantt-bar" title="Ingreso acordado: ${r.ingAcord}" style="left:${pIng}%;width:.7%;background:${r.ingresado?'var(--gn)':'var(--ac)'};opacity:.95;border-radius:50%"></div>`:''}
           ${tp!=null?`<div class="gantt-today" style="left:${tp}%"></div>`:''}
         </div>
-        <div class="gantt-datecol">${r.ingAcord||''}</div>
+        <div class="gantt-datecol" style="${r.ingresado?'color:var(--gn);font-weight:600':''}">${r.ingAcord||''}</div>
       </div>`;
     }).join('')}
   </div>`;
 }
+function estadoLabel(e){return e||'Planificado';}
 function openProdModal(id){
   const r=(getData()||[]).find(x=>x.id===id);if(!r)return;
   sV('mp-id',r.id);document.getElementById('mp-info').textContent=`${r.codigo||''} — ${r.nombre} · ${r.linea}`;
   sV('mp-planif',r.planificado||'');sV('mp-tela',r.ingresoTela||'');
   sV('mp-cortep',r.cortePlan||'');sV('mp-corter',r.corteReal||'');
-  sV('mp-taller',r.taller||'');sV('mp-semanas',r.semanas||'');sV('mp-procesos',r.procesos||'');
-  sV('mp-salida',r.fechaSalida||'');sV('mp-estado',r.estado||'');
+  sV('mp-estado',r.estado||'');
   sV('mp-precio',r.precio||'');sV('mp-ingac',r.ingAcord||'');sV('mp-ingre',r.ingReal||'');
   document.getElementById('modal-prod').classList.add('open');
 }
@@ -846,11 +922,83 @@ function saveProdModal(){
   rows=rows.map(r=>r.id!==id?r:{...r,
     planificado:gV('mp-planif'),ingresoTela:gV('mp-tela'),
     cortePlan:gV('mp-cortep'),corteReal:gV('mp-corter'),
-    taller:gV('mp-taller'),semanas:parseFloat(gV('mp-semanas'))||0,procesos:gV('mp-procesos'),
-    fechaSalida:gV('mp-salida'),estado:gV('mp-estado'),
+    estado:gV('mp-estado'),
     precio:parseFloat(gV('mp-precio'))||0,ingAcord:gV('mp-ingac'),ingReal:gV('mp-ingre'),
   });
   setData(rows);closeModal('modal-prod');renderProd();toast('Producción actualizada ✓');
+}
+function toggleIngresado(id){
+  let rows=getData()||[];
+  rows=rows.map(r=>r.id!==id?r:{...r,ingresado:!r.ingresado});
+  setData(rows);renderProdView();
+}
+
+// ── PROCESOS DE PRODUCCIÓN (talleres por etapa, por artículo) ────
+let PROD_OPEN=new Set();
+function toggleProdRow(id){if(PROD_OPEN.has(id))PROD_OPEN.delete(id);else PROD_OPEN.add(id);renderProdView();}
+function calcProcFin(){
+  const inicio=gV('proc-inicio'),semanas=parseFloat(gV('proc-semanas'))||0;
+  const fin=addWeeks(inicio,semanas);
+  sV('proc-fin',fin?fmtDM(fin):'');
+}
+function procRowHtml(r){
+  const procs=r.procesos||[];
+  return`<tr class="mtz-detail-row${PROD_OPEN.has(r.id)?' open':''}"><td colspan="12">
+    <div class="mtz-detail">
+      <div class="mtz-detail-hd">
+        <span class="mtz-detail-title">Procesos de producción · ${r.nombre}${r.color?' · '+r.color:''}</span>
+        <button class="btn-add-sm" onclick="event.stopPropagation();openProcModal(${r.id},null)">+ Agregar proceso</button>
+      </div>
+      ${!procs.length?'<div class="mtz-mat-empty">Sin procesos cargados todavía. Agregá corte, confección, estampa, bordado, etc. — cada uno con su propio taller y semanas.</div>':`
+      <div class="tbl-scroll"><table class="mtz-mat-tbl" style="min-width:760px">
+        <thead><tr><th>Proceso</th><th>Taller</th><th class="r">Semanas</th><th>Inicio</th><th>Fin estimado</th><th>Estado</th><th></th></tr></thead>
+        <tbody>${procs.map(p=>{const fin=addWeeks(p.inicio,p.semanas);return`<tr>
+          <td style="font-weight:500">${p.nombre||'—'}</td>
+          <td class="mu">${p.taller||'<span style=\"color:var(--or)\">sin asignar</span>'}</td>
+          <td class="r mu">${p.semanas||0}</td>
+          <td class="mu">${p.inicio||''}</td>
+          <td class="mu" style="color:var(--ac)">${fin?fmtDM(fin):''}</td>
+          <td>${estadoBadge(p.estado)}</td>
+          <td><div class="row-act">
+            <button class="btn-sm edit" onclick="event.stopPropagation();openProcModal(${r.id},${p.id})">✏</button>
+            <button class="btn-sm del" onclick="event.stopPropagation();delProc(${r.id},${p.id})">🗑</button>
+          </div></td>
+        </tr>`;}).join('')}</tbody>
+      </table></div>`}
+    </div>
+  </td></tr>`;
+}
+function openProcModal(articleId,procId){
+  const r=(getData()||[]).find(x=>x.id===articleId);if(!r)return;
+  const p=procId?(r.procesos||[]).find(x=>x.id===procId):null;
+  sV('proc-article-id',articleId);sV('proc-id',procId||'');
+  document.getElementById('proc-title').textContent=p?'Editar proceso':'Agregar proceso';
+  document.getElementById('proc-info').textContent=`${r.codigo||''} — ${r.nombre}${r.color?' · '+r.color:''}`;
+  sV('proc-nombre',p?.nombre||'');sV('proc-semanas',p?.semanas||'');sV('proc-inicio',p?.inicio||'');
+  sV('proc-taller',p?.taller||'');sV('proc-estado',p?.estado||'');
+  const fin=p?addWeeks(p.inicio,p.semanas):null;sV('proc-fin',fin?fmtDM(fin):'');
+  document.getElementById('modal-proc').classList.add('open');
+}
+function saveProcModal(){
+  const articleId=parseInt(gV('proc-article-id'));
+  const procId=gV('proc-id')?parseInt(gV('proc-id')):null;
+  const rows=getData()||[];
+  const r=rows.find(x=>x.id===articleId);if(!r)return;
+  const item={
+    id:procId||nextProcId(r),nombre:gV('proc-nombre'),semanas:parseFloat(gV('proc-semanas'))||0,
+    inicio:gV('proc-inicio'),taller:gV('proc-taller'),estado:gV('proc-estado'),
+  };
+  if(!item.nombre){toast('El proceso necesita un nombre','var(--rd)');return;}
+  const procs=r.procesos||[];
+  const newProcs=procId?procs.map(p=>p.id===procId?item:p):[...procs,item];
+  const newRows=rows.map(x=>x.id!==articleId?x:{...x,procesos:newProcs});
+  setData(newRows);closeModal('modal-proc');PROD_OPEN.add(articleId);renderProdView();toast(procId?'Proceso actualizado ✓':'Proceso agregado ✓');
+}
+function delProc(articleId,procId){
+  if(!confirm('¿Eliminar este proceso?'))return;
+  const rows=getData()||[];
+  const newRows=rows.map(x=>x.id!==articleId?x:{...x,procesos:(x.procesos||[]).filter(p=>p.id!==procId)});
+  setData(newRows);PROD_OPEN.add(articleId);renderProdView();toast('Proceso eliminado','var(--rd)');
 }
 
 // ── MATRIZ ────────────────────────────────────────────────────────
