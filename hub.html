@@ -428,43 +428,16 @@ tbody td.mu{color:var(--mu);font-size:9px}
     <input type="hidden" id="dr-id">
 
     <div class="fsec">
-      <div class="fsec-title">Identificación</div>
       <div class="fgrid">
-        <div class="field"><label>Mes</label>
+        <div class="field full"><label>Nombre del artículo *</label><input id="dr-nombre" placeholder="Ej: TOP WHITE"></div>
+        <div class="field"><label>Mes *</label>
           <select id="dr-mes"><option>ENERO</option><option>FEBRERO</option><option>MARZO</option><option>ABRIL</option><option>MAYO</option><option>JUNIO</option><option>JULIO</option><option>AGOSTO</option><option>SEPTIEMBRE</option><option>OCTUBRE</option><option>NOVIEMBRE</option><option>DICIEMBRE</option></select></div>
-        <div class="field"><label>Línea</label>
+        <div class="field"><label>Línea *</label>
           <select id="dr-linea"><option>DIA</option><option>NOCHE</option><option>DENIM</option><option>PT</option><option>CONTINUO</option><option>CÁPSULA 3</option><option>OTRO</option></select></div>
-        <div class="field"><label>Código</label><input id="dr-codigo" placeholder="BDY301"></div>
-        <div class="field"><label>Etapa</label><input id="dr-etapa" placeholder="PRODUCCION"></div>
-        <div class="field full"><label>Nombre del artículo</label><input id="dr-nombre" placeholder="BODY DEX"></div>
+        <div class="field"><label>Q Estimada *</label><input id="dr-cant" type="number" min="0" placeholder="0"></div>
         <div class="field"><label>Color</label><input id="dr-color" placeholder="NEGRO"></div>
-        <div class="field"><label>Marca</label><input id="dr-marca" placeholder="TW"></div>
-        <div class="field"><label>Cant. planificada</label><input id="dr-cant" type="number" min="0" placeholder="0"></div>
-        <div class="field"><label>Q Real</label><input id="dr-qreal" type="number" min="0" placeholder="0"></div>
-        <div class="field"><label>Ficha final</label><input id="dr-ficha" placeholder="OK / PENDIENTE"></div>
-        <div class="field"><label>Compra</label><input id="dr-compra" placeholder="OK / PENDIENTE"></div>
-        <div class="field"><label>MP</label><input id="dr-mp" placeholder="OK / PENDIENTE"></div>
-      </div>
-    </div>
-
-    <div class="fsec">
-      <div class="fsec-title">Materia Prima y Costos</div>
-      <div class="fgrid">
-        <div class="field full"><label>Ubicación</label><input id="dr-ubic" placeholder="DEPOSITO A"></div>
-        <div class="field"><label>Precio venta</label><input id="dr-precio" type="number" placeholder="0"></div>
-      </div>
-      <div style="margin-top:12px;padding:11px 14px;background:var(--sf2);border:1px dashed var(--bd);border-radius:9px;font-size:10px;color:var(--mu);line-height:1.6">
-        💡 Las telas, avíos, etiquetas y demás componentes (con sus consumos, rindes y costos) se cargan desde la pestaña <b style="color:var(--ac)">Matriz</b>, desplegando el artículo — así podés sumar todos los que necesite cada producto.
-      </div>
-    </div>
-
-    <div class="fsec">
-      <div class="fsec-title">Fecha objetivo</div>
-      <div class="fgrid">
-        <div class="field"><label>Fecha de ingreso (objetivo)</label><input id="dr-ingac" placeholder="ej: 15/10"></div>
-      </div>
-      <div style="margin-top:12px;padding:11px 14px;background:var(--sf2);border:1px dashed var(--bd);border-radius:9px;font-size:10px;color:var(--mu);line-height:1.6">
-        💡 Esta es la fecha objetivo definida por diseño — apenas la cargás, el artículo aparece en <b style="color:var(--ac)">Producción</b> con esa fecha. La planificación productiva (ingreso de tela, cortes, taller, semanas de confección, etc.) se completa después, más cerca de la fecha, desde la pestaña Producción.
+        <div class="field"><label>Código</label><input id="dr-codigo" placeholder="TOP100"></div>
+        <div class="field"><label>Fecha de ingreso (objetivo)</label><input id="dr-ingac" placeholder="ej: 22/10"></div>
       </div>
     </div>
   </div>
@@ -771,11 +744,8 @@ function renderDash(){
 function openDrawer(id){
   const r=id?(getData()||[]).find(x=>x.id===id):null;
   sV('dr-id',r?.id||'');
-  sV('dr-mes',r?.mes||'JUNIO');sV('dr-linea',r?.linea||'DIA');sV('dr-codigo',r?.codigo||'');
-  sV('dr-etapa',r?.etapa||'');sV('dr-nombre',r?.nombre||'');sV('dr-color',r?.color||'');
-  sV('dr-marca',r?.marca||'TW');sV('dr-cant',r?.cant||'');sV('dr-qreal',r?.qreal||'');
-  sV('dr-ficha',r?.ficha||'');sV('dr-compra',r?.compra||'');sV('dr-mp',r?.mp||'');
-  sV('dr-ubic',r?.ubic||'');sV('dr-precio',r?.precio||'');
+  sV('dr-nombre',r?.nombre||'');sV('dr-mes',r?.mes||'OCTUBRE');sV('dr-linea',r?.linea||'DIA');
+  sV('dr-cant',r?.cant||'');sV('dr-color',r?.color||'');sV('dr-codigo',r?.codigo||'');
   sV('dr-ingac',r?.ingAcord||'');
   document.getElementById('drawer-title').textContent=r?`Editar — ${r.nombre}`:'Nuevo artículo';
   document.getElementById('drawer-overlay').classList.add('open');
@@ -787,23 +757,25 @@ function closeDrawer(){
 }
 function saveDrawer(){
   const id=gV('dr-id');
+  const nombre=gV('dr-nombre').trim();
+  if(!nombre){toast('El artículo necesita un nombre','var(--rd)');return;}
   const cant=parseFloat(gV('dr-cant'))||0;
   const orig=id?(getData()||[]).find(x=>x.id===parseInt(id)):null;
   const row={
     id:id?parseInt(id):nextId(),
-    mes:gV('dr-mes'),marca:gV('dr-marca'),linea:gV('dr-linea'),etapa:gV('dr-etapa'),
-    codigo:gV('dr-codigo'),nombre:gV('dr-nombre'),color:gV('dr-color'),
-    cant,qreal:parseFloat(gV('dr-qreal'))||0,
-    ficha:gV('dr-ficha'),compra:gV('dr-compra'),mp:gV('dr-mp'),
-    ubic:gV('dr-ubic'),precio:parseFloat(gV('dr-precio'))||0,
+    nombre,mes:gV('dr-mes'),linea:gV('dr-linea'),
+    cant,color:gV('dr-color'),codigo:gV('dr-codigo'),
+    // campos preservados/derivados — no se editan en la creación básica
+    marca:orig?.marca||'TW',etapa:orig?.etapa||'',qreal:orig?.qreal||0,
+    ficha:orig?.ficha||'PENDIENTE',mp:orig?.mp||'PENDIENTE',
+    ubic:orig?.ubic||'',precio:orig?.precio||0,
+    compra:orig?.compra||'PENDIENTE',
     materiales:orig?.materiales||[],
     ingAcord:gV('dr-ingac'),
-    // Planificación productiva: se completa después desde la pestaña Producción
     planificado:orig?.planificado||'',ingresoTela:orig?.ingresoTela||'',
     cortePlan:orig?.cortePlan||'',corteReal:orig?.corteReal||'',
-    taller:orig?.taller||'',semanas:orig?.semanas||0,procesos:orig?.procesos||'',
-    fechaSalida:orig?.fechaSalida||'',estado:orig?.estado||'',
-    ingReal:orig?.ingReal||'',
+    procesos:orig?.procesos||[],estado:orig?.estado||'',
+    ingReal:orig?.ingReal||'',ingresado:orig?.ingresado||false,
   };
   let rows=getData()||[];
   if(id)rows=rows.map(r=>r.id===parseInt(id)?row:r);else rows.push(row);
@@ -1040,7 +1012,7 @@ function toggleMtzRow(id){if(MTZ_OPEN.has(id))MTZ_OPEN.delete(id);else MTZ_OPEN.
 function matRowHtml(r){
   const mats=r.materiales||[];
   const sumTotal=mats.reduce((a,m)=>a+(m.total||0),0);
-  return`<tr class="mtz-detail-row${MTZ_OPEN.has(r.id)?' open':''}"><td colspan="14">
+  return`<tr class="mtz-detail-row${MTZ_OPEN.has(r.id)?' open':''}"><td colspan="11">
     <div class="mtz-detail">
       <div class="mtz-detail-hd">
         <span class="mtz-detail-title">Componentes / Materia prima · ${r.nombre}${r.color?' · '+r.color:''}</span>
@@ -1081,9 +1053,9 @@ function renderMtzView(){
   document.getElementById('mtz-count').textContent=`${rows.length} artículo${rows.length!==1?'s':''}`;
   const el=document.getElementById('mtz-view');
   if(!rows.length){el.innerHTML='<div class="empty">🔍 Sin resultados</div>';return;}
-  el.innerHTML=`<div class="tbl-scroll"><table style="min-width:1080px">
+  el.innerHTML=`<div class="tbl-scroll"><table style="min-width:760px">
     <thead><tr><th></th><th>Mes</th><th>Línea</th><th>Código</th><th>Artículo</th><th>Color</th>
-    <th class="r">Cant</th><th class="r">Q Real</th><th>Fecha ingreso</th><th>Ficha</th><th>Compra</th><th>MP</th><th class="r">Total $</th><th></th></tr></thead>
+    <th class="r">Q Est.</th><th>Fecha ingreso</th><th>Compra</th><th class="r">Total $</th><th></th></tr></thead>
     <tbody>${rows.map(r=>{
       const mats=r.materiales||[];
       const total=mats.length?mats.reduce((a,m)=>a+(m.total||0),0):(r.total||0);
@@ -1093,9 +1065,9 @@ function renderMtzView(){
       <td class="mu">${r.codigo||''}</td>
       <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${r.nombre}">${r.nombre}${mats.length?` <span class="mu">· ${mats.length} comp.</span>`:''}</td>
       <td class="mu">${r.color||''}</td>
-      <td class="r">${r.cant||0}</td><td class="r mu">${r.qreal||0}</td>
+      <td class="r">${r.cant||0}</td>
       <td class="mu">${r.ingAcord||r.planificado||''}</td>
-      <td>${okBadge(r.ficha)}</td><td>${okBadge(r.compra)}</td><td>${okBadge(r.mp)}</td>
+      <td>${okBadge(r.compra)}</td>
       <td class="r" style="color:var(--ac);font-weight:500">${total?fmtV(total):''}</td>
       <td><div class="row-act">
         <button class="btn-sm edit" onclick="event.stopPropagation();openDrawer(${r.id})">✏</button>
