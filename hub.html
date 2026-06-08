@@ -165,6 +165,14 @@ tbody td.mu{color:var(--mu);font-size:9px}
 .fc-grp{background:rgba(37,99,235,.04)}
 .fc-grp2{background:rgba(22,163,74,.04)}
 .fc-tfoot td{padding:7px 9px;font-size:9px;font-weight:600;background:var(--sf3);border-top:2px solid var(--bd)}
+.stock-bar{height:10px;border-radius:5px;overflow:hidden;display:flex;gap:1px;min-width:100px}
+.stock-bar-seg{height:100%;transition:width .3s}
+.stock-chip{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:500;padding:3px 8px;border-radius:6px;white-space:nowrap}
+.stock-chip .sc-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.stock-gap-ok{color:var(--gn);font-weight:600;font-size:9px}
+.stock-gap-over{color:var(--rd);font-weight:600;font-size:9px}
+.stock-gap-under{color:var(--or);font-weight:600;font-size:9px}
+.stock-pending{color:var(--mu);font-style:italic;font-size:9px}
 .mtz-mat-tbl th{background:var(--sf3);font-weight:500;font-size:8px;letter-spacing:.8px;text-transform:uppercase;color:var(--mu);padding:7px 9px;text-align:left;white-space:nowrap}
 .mtz-mat-tbl th.r,.mtz-mat-tbl td.r{text-align:right}
 .mtz-mat-tbl td{padding:7px 9px;border-top:1px solid var(--bd);color:var(--tx);white-space:nowrap}
@@ -374,8 +382,14 @@ tbody td.mu{color:var(--mu);font-size:9px}
     <!-- STOCK -->
     <div class="panel" id="panel-stock">
       <div class="panel-title">División de Stock</div>
-      <div class="panel-sub">Distribución automática por sucursal</div>
-      <div class="ph"><div class="ph-icon">📦</div><div class="ph-txt">En desarrollo</div><div class="ph-sub">Ingresá un corte y la app calculará automáticamente la distribución por sucursal.</div></div>
+      <div class="panel-sub">Distribución por canal de cada artículo — alimentada directamente desde el Forecast</div>
+      <div class="tbl-wrap">
+        <div class="tbl-head">
+          <div class="tbl-title" id="stock-count">—</div>
+        </div>
+        <div class="filters" id="stock-filters"></div>
+        <div id="stock-view"></div>
+      </div>
     </div>
 
     <!-- CONFIG -->
@@ -628,6 +642,7 @@ function showPanel(id){
   if(id==='prod')renderProd();if(id==='mtz')renderMtz();if(id==='cfg')renderCfg();
   if(id==='proveedores')renderProveedores();if(id==='costos')renderCostos();
   if(id==='forecast')renderForecast();
+  if(id==='stock')renderStock();
 }
 
 // ── STORAGE ───────────────────────────────────────────────────────
@@ -1425,6 +1440,95 @@ function renderForecastView(){
       <td class="r" style="color:var(--or)">${fPreCTotal?fmtV(fPreCTotal):''}</td>
     </tr></tfoot>
   </table></div>`;
+}
+
+// ── DIVISIÓN DE STOCK ─────────────────────────────────────────────
+const CH_COLORS={
+  Mayorista:'#2563eb',Web:'#7c3aed',VDP:'#0d9488',
+  'Palermo Off':'#db2777',Armenia:'#d97706',Lomitas:'#16a34a','Loc. Nuevo 1':'#9333ea'
+};
+let SF={mes:'ALL'};
+function renderStock(){
+  const rows=getData()||[];
+  const meses=uniq(rows.map(r=>r.mes));
+  document.getElementById('stock-filters').innerHTML=`
+    <select class="flt" onchange="SF.mes=this.value;renderStockView()"><option value="ALL">Todos los meses</option>${meses.map(m=>`<option>${m}</option>`).join('')}</select>`;
+  renderStockView();
+}
+function renderStockView(){
+  const rows=(getData()||[]).filter(r=>SF.mes==='ALL'||r.mes===SF.mes);
+  const el=document.getElementById('stock-view');
+  // Group by mes for clear sections
+  const groups={};
+  rows.forEach(r=>{const m=r.mes||'SIN MES';if(!groups[m])groups[m]=[];groups[m].push(r);});
+  const mesesOrden=Object.keys(groups);
+  const totalArticulos=rows.length;
+  document.getElementById('stock-count').textContent=`${totalArticulos} artículo${totalArticulos!==1?'s':''} · nutridos del Forecast`;
+  if(!rows.length){el.innerHTML='<div class="empty">📦 Creá artículos en Matriz y completá cantidades en el Forecast para ver la división acá</div>';return;}
+  const channels=FC_CHANNELS.map(c=>({key:c.key,label:c.label}));
+  el.innerHTML=mesesOrden.map(mes=>{
+    const arts=groups[mes];
+    const mesTotal=arts.reduce((s,r)=>{const fc=getFcRow(r.id);return s+channels.reduce((a,c)=>a+(fc[c.key]||0),0);},0);
+    const rows2=arts.map(r=>{
+      const fc=getFcRow(r.id);
+      const cant=r.cant||0;
+      const qtys=channels.map(c=>({...c,qty:fc[c.key]||0}));
+      const fcTotal=qtys.reduce((s,c)=>s+c.qty,0);
+      const gap=cant-fcTotal;
+      const hasFc=fcTotal>0;
+      return`<tr>
+        <td>${lineaBadge(r.linea)}</td>
+        <td style="font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${r.nombre}">${r.nombre}</td>
+        <td class="mu">${r.color||''}</td>
+        <td class="r" style="font-weight:600">${fmtN(cant)}</td>
+        ${qtys.map(c=>`<td class="r">
+          ${c.qty?`<div class="stock-chip" style="background:${CH_COLORS[c.label]||'#9a8f87'}18;color:${CH_COLORS[c.label]||'#9a8f87'}">
+            <span class="sc-dot" style="background:${CH_COLORS[c.label]||'#9a8f87'}"></span>${c.qty}
+          </div>`:'<span class="mu">—</span>'}
+        </td>`).join('')}
+        <td class="r" style="font-weight:600;color:var(--ac)">${hasFc?fmtN(fcTotal):'<span class="stock-pending">sin planif.</span>'}</td>
+        <td class="r">
+          ${!hasFc?'<span class="stock-pending">pendiente</span>':
+            gap===0?`<span class="stock-gap-ok">✓ Cuadra</span>`:
+            gap>0?`<span class="stock-gap-under">−${fmtN(gap)} sin asignar</span>`:
+            `<span class="stock-gap-over">+${fmtN(Math.abs(gap))} excede producción</span>`}
+        </td>
+        <td style="min-width:110px">
+          ${hasFc?`<div class="stock-bar">${qtys.filter(c=>c.qty>0).map(c=>`<div class="stock-bar-seg" title="${c.label}: ${c.qty}" style="background:${CH_COLORS[c.label]||'#9a8f87'};width:${(c.qty/fcTotal*100).toFixed(1)}%"></div>`).join('')}</div>`:''}
+        </td>
+      </tr>`;
+    }).join('');
+    return`<div style="margin-bottom:28px">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 20px;background:var(--sf3);border:1px solid var(--bd);border-radius:10px 10px 0 0;margin-bottom:0">
+        <span style="font-size:11px;font-weight:600;letter-spacing:.5px">${mes}</span>
+        <span class="mu" style="font-size:9px">${arts.length} artículo${arts.length!==1?'s':''}</span>
+        <span style="font-size:9px;color:var(--ac);font-weight:500;margin-left:auto">${mesTotal?fmtN(mesTotal)+' unidades planificadas':''}</span>
+      </div>
+      <div class="tbl-scroll"><table style="min-width:1000px">
+        <thead><tr>
+          <th>Línea</th><th>Artículo</th><th>Color</th><th class="r">Producción</th>
+          ${channels.map(c=>`<th class="r"><span class="sc-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${CH_COLORS[c.label]||'#9a8f87'};margin-right:4px"></span>${c.label}</th>`).join('')}
+          <th class="r">Total Fcst</th><th>Estado</th><th style="min-width:110px">Distribución</th>
+        </tr></thead>
+        <tbody>${rows2}</tbody>
+        <tfoot><tr>
+          <td colspan="4" class="r mu" style="padding:7px 9px;font-size:8px;letter-spacing:.8px;text-transform:uppercase;background:var(--sf2)">Totales ${mes}</td>
+          ${channels.map(c=>{const t=arts.reduce((s,r)=>s+(getFcRow(r.id)[c.key]||0),0);return`<td class="r" style="padding:7px 9px;font-weight:600;background:var(--sf2);color:${CH_COLORS[c.label]||'#9a8f87'}">${t||''}</td>`;}).join('')}
+          <td class="r" style="padding:7px 9px;font-weight:700;color:var(--ac);background:var(--sf2)">${fmtN(mesTotal)}</td>
+          <td colspan="2" style="background:var(--sf2)"></td>
+        </tr></tfoot>
+      </table></div>
+    </div>`;
+  }).join('')+`
+  <div style="padding:14px 20px;border:1px solid var(--bd);border-radius:10px;background:var(--sf2)">
+    <div style="font-size:9px;color:var(--mu);line-height:1.9">
+      💡 <b style="color:var(--tx)">Leyenda</b> &nbsp;·&nbsp;
+      <span class="stock-gap-ok">✓ Cuadra</span> — todas las unidades de producción están asignadas a un canal &nbsp;·&nbsp;
+      <span class="stock-gap-under">−N sin asignar</span> — faltan distribuir N unidades &nbsp;·&nbsp;
+      <span class="stock-gap-over">+N excede</span> — se distribuyeron más unidades de las que entran del corte &nbsp;·&nbsp;
+      <span class="stock-pending">sin planif.</span> — artículo sin cantidades en el Forecast
+    </div>
+  </div>`;
 }
 
 // ── CONFIG ────────────────────────────────────────────────────────
