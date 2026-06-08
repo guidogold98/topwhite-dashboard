@@ -950,15 +950,18 @@ function procRowHtml(r){
         <button class="btn-add-sm" onclick="event.stopPropagation();openProcModal(${r.id},null)">+ Agregar proceso</button>
       </div>
       ${!procs.length?'<div class="mtz-mat-empty">Sin procesos cargados todavía. Agregá corte, confección, estampa, bordado, etc. — cada uno con su propio taller y semanas.</div>':`
-      <div class="tbl-scroll"><table class="mtz-mat-tbl" style="min-width:760px">
-        <thead><tr><th>Proceso</th><th>Taller</th><th class="r">Semanas</th><th>Inicio</th><th>Fin estimado</th><th>Estado</th><th></th></tr></thead>
-        <tbody>${procs.map(p=>{const fin=addWeeks(p.inicio,p.semanas);return`<tr>
+      <div class="tbl-scroll"><table class="mtz-mat-tbl" style="min-width:840px">
+        <thead><tr><th>Proceso</th><th>Taller</th><th class="r">Semanas</th><th>Inicio</th><th>Fin estimado</th><th>Estado</th><th style="text-align:center">Ingresado</th><th></th></tr></thead>
+        <tbody>${procs.map(p=>{const fin=addWeeks(p.inicio,p.semanas);return`<tr class="${p.ingresado?'row-ingresado':''}">
           <td style="font-weight:500">${p.nombre||'—'}</td>
           <td class="mu">${p.taller||'<span style=\"color:var(--or)\">sin asignar</span>'}</td>
           <td class="r mu">${p.semanas||0}</td>
           <td class="mu">${p.inicio||''}</td>
           <td class="mu" style="color:var(--ac)">${fin?fmtDM(fin):''}</td>
           <td>${estadoBadge(p.estado)}</td>
+          <td style="text-align:center" onclick="event.stopPropagation();toggleProcIngresado(${r.id},${p.id})">
+            ${p.ingresado?'<span class="badge" style="background:rgba(22,163,74,.15);color:var(--gn);cursor:pointer">✓ INGRESADO</span>':'<span class="badge" style="background:var(--sf);color:var(--mu);cursor:pointer;border:1px dashed var(--bd)">marcar</span>'}
+          </td>
           <td><div class="row-act">
             <button class="btn-sm edit" onclick="event.stopPropagation();openProcModal(${r.id},${p.id})">✏</button>
             <button class="btn-sm del" onclick="event.stopPropagation();delProc(${r.id},${p.id})">🗑</button>
@@ -967,6 +970,13 @@ function procRowHtml(r){
       </table></div>`}
     </div>
   </td></tr>`;
+}
+function toggleProcIngresado(articleId,procId){
+  const rows=getData()||[];
+  const r=rows.find(x=>x.id===articleId);if(!r)return;
+  const newProcs=(r.procesos||[]).map(p=>p.id!==procId?p:{...p,ingresado:!p.ingresado});
+  setData(rows.map(x=>x.id!==articleId?x:{...x,procesos:newProcs}));
+  PROD_OPEN.add(articleId);renderProdView();
 }
 function openProcModal(articleId,procId){
   const r=(getData()||[]).find(x=>x.id===articleId);if(!r)return;
@@ -1023,11 +1033,11 @@ function matRowHtml(r){
         <button class="btn-add-sm" onclick="event.stopPropagation();openMatModal(${r.id},null)">+ Agregar componente</button>
       </div>
       ${!mats.length?'<div class="mtz-mat-empty">Sin componentes cargados todavía. Agregá telas, avíos, etiquetas, packaging, etc.</div>':`
-      <div class="tbl-scroll"><table class="mtz-mat-tbl" style="min-width:1280px">
+      <div class="tbl-scroll"><table class="mtz-mat-tbl" style="min-width:1380px">
         <thead><tr><th>Tipo</th><th>Cod TW</th><th>Materia / Descripción</th><th>Proveedor</th><th>Color Prov.</th>
         <th class="r">Cons./pr</th><th class="r">Rinde</th><th class="r">Precio</th><th class="r">Cant MP (auto)</th><th class="r">Rinde real</th>
-        <th class="r">Q real mts</th><th class="r">Cons.real</th><th class="r">Costo/pr (auto)</th><th class="r">Total a pagar (auto)</th><th></th></tr></thead>
-        <tbody>${mats.map(m=>`<tr>
+        <th class="r">Q real mts</th><th class="r">Cons.real</th><th class="r">Costo/pr (auto)</th><th class="r">Total a pagar (auto)</th><th style="text-align:center">Comprado</th><th></th></tr></thead>
+        <tbody>${mats.map(m=>`<tr class="${m.comprado?'row-ingresado':''}">
           <td><span class="badge" style="background:rgba(124,58,237,.1);color:var(--pu)">${m.tipo||'—'}</span></td>
           <td class="mu">${m.codtw||''}</td>
           <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis" title="${m.materia||''}">${m.materia||''}</td>
@@ -1038,13 +1048,16 @@ function matRowHtml(r){
           <td class="r mu">${m.rindereal||0}</td><td class="r mu">${m.qrealmts||0}</td><td class="r mu">${m.consumoreal||0}</td>
           <td class="r" style="color:var(--or)">${m.costo?fmtV(m.costo):''}</td>
           <td class="r" style="color:var(--ac);font-weight:500">${m.total?fmtV(m.total):''}</td>
+          <td style="text-align:center" onclick="event.stopPropagation();toggleMatComprado(${r.id},${m.id})">
+            ${m.comprado?'<span class="badge" style="background:rgba(22,163,74,.15);color:var(--gn);cursor:pointer">✓ COMPRADO</span>':'<span class="badge" style="background:var(--sf);color:var(--mu);cursor:pointer;border:1px dashed var(--bd)">marcar</span>'}
+          </td>
           <td><div class="row-act">
             <button class="btn-sm edit" onclick="event.stopPropagation();openMatModal(${r.id},${m.id})">✏</button>
             <button class="btn-sm del" onclick="event.stopPropagation();delMat(${r.id},${m.id})">🗑</button>
           </div></td>
         </tr>`).join('')}</tbody>
         <tfoot><tr><td colspan="13" class="r mu" style="padding:8px 9px;font-size:9px;letter-spacing:1px;text-transform:uppercase">Total a pagar (todos los componentes)</td>
-        <td class="r" style="padding:8px 9px;color:var(--ac);font-weight:600">${sumTotal?fmtV(sumTotal):'$0'}</td><td></td></tr></tfoot>
+        <td class="r" style="padding:8px 9px;color:var(--ac);font-weight:600">${sumTotal?fmtV(sumTotal):'$0'}</td><td></td><td></td></tr></tfoot>
       </table></div>`}
     </div>
   </td></tr>`;
@@ -1094,6 +1107,20 @@ function calcMatTotal(){
   sV('mat-costo',costo?+costo.toFixed(2):'');
   sV('mat-total',total?Math.round(total):'');
 }
+function syncCompraFromMats(article){
+  const mats=article.materiales||[];
+  if(!mats.length)return article;
+  return{...article,compra:mats.every(m=>m.comprado)?'OK':'PENDIENTE'};
+}
+function toggleMatComprado(articleId,matId){
+  const rows=getData()||[];
+  const r=rows.find(x=>x.id===articleId);if(!r)return;
+  const newMats=(r.materiales||[]).map(m=>m.id!==matId?m:{...m,comprado:!m.comprado});
+  const updated=syncCompraFromMats({...r,materiales:newMats});
+  setData(rows.map(x=>x.id!==articleId?x:updated));
+  MTZ_OPEN.add(articleId);renderMtzView();
+  if(updated.compra==='OK'&&r.compra!=='OK')toast(`✓ ${r.nombre} — todos los componentes comprados`,'var(--gn)');
+}
 function openMatModal(articleId,matId){
   const r=(getData()||[]).find(x=>x.id===articleId);if(!r)return;
   const m=matId?(r.materiales||[]).find(x=>x.id===matId):null;
@@ -1120,23 +1147,25 @@ function saveMatModal(){
   const cantmp=+(cantArt*consxrinde).toFixed(2);
   const costo=+(consxrinde*precio).toFixed(2);
   const total=Math.round(cantmp*precio);
+  const mats=r.materiales||[];
+  const orig=matId?mats.find(m=>m.id===matId):null;
   const item={
     id:matId||nextMatId(r),tipo:gV('mat-tipo'),codtw:gV('mat-codtw'),materia:gV('mat-materia'),
     prov:gV('mat-prov'),colorprov:gV('mat-colorprov'),
     consumo,rinde,precio,cantmp,
     rindereal:parseFloat(gV('mat-rindereal'))||0,qrealmts:parseFloat(gV('mat-qrealmts'))||0,
     consumoreal:parseFloat(gV('mat-consumoreal'))||0,costo,total,
+    comprado:orig?.comprado||false,
   };
-  const mats=r.materiales||[];
   const newMats=matId?mats.map(m=>m.id===matId?item:m):[...mats,item];
-  const newRows=rows.map(x=>x.id!==articleId?x:{...x,materiales:newMats});
+  const newRows=rows.map(x=>x.id!==articleId?x:syncCompraFromMats({...x,materiales:newMats}));
   setData(newRows);closeModal('modal-mat');MTZ_OPEN.add(articleId);renderMtzView();toast(matId?'Componente actualizado ✓':'Componente agregado ✓');
 }
 function delMat(articleId,matId){
   if(!confirm('¿Eliminar este componente?'))return;
   const rows=getData()||[];
   const r=rows.find(x=>x.id===articleId);if(!r)return;
-  const newRows=rows.map(x=>x.id!==articleId?x:{...x,materiales:(x.materiales||[]).filter(m=>m.id!==matId)});
+  const newRows=rows.map(x=>x.id!==articleId?x:syncCompraFromMats({...x,materiales:(x.materiales||[]).filter(m=>m.id!==matId)}));
   setData(newRows);MTZ_OPEN.add(articleId);renderMtzView();toast('Componente eliminado','var(--rd)');
 }
 
