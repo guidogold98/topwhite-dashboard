@@ -274,21 +274,6 @@ tbody td.mu{color:var(--mu);font-size:9px}
     </div>
 
     <!-- CREACIÓN DE PRODUCTO -->
-    <div class="panel" id="panel-crear">
-      <div class="panel-title">Creación de Producto</div>
-      <div class="panel-sub">Fuente única · todos los campos de producto y producción en un solo lugar</div>
-      <div class="tbl-wrap">
-        <div class="tbl-head">
-          <div class="tbl-title" id="crear-count">—</div>
-          <div class="tbl-actions">
-            <button class="btn-add" onclick="openDrawer(null)">+ Nuevo artículo</button>
-          </div>
-        </div>
-        <div class="filters" id="crear-filters"></div>
-        <div id="crear-view"></div>
-      </div>
-    </div>
-
     <!-- PRODUCCIÓN -->
     <div class="panel" id="panel-prod">
       <div class="panel-title">Seguimiento de Producción</div>
@@ -309,14 +294,60 @@ tbody td.mu{color:var(--mu);font-size:9px}
     <!-- MATRIZ -->
     <div class="panel" id="panel-mtz">
       <div class="panel-title">Matriz de Producto</div>
-      <div class="panel-sub">Los mismos artículos · editá solo los campos de materia prima y costos</div>
+      <div class="panel-sub">Creá el artículo, su fecha de ingreso y todos sus componentes — se reflejan automáticamente en Producción, Costos y Forecast</div>
       <div class="tbl-wrap">
         <div class="tbl-head">
           <div class="tbl-title" id="mtz-count">—</div>
+          <div class="tbl-actions">
+            <button class="btn-add" onclick="openDrawer(null)">+ Nuevo artículo</button>
+          </div>
         </div>
         <div class="filters" id="mtz-filters"></div>
         <div id="mtz-view"></div>
       </div>
+    </div>
+
+    <!-- PROVEEDORES -->
+    <div class="panel" id="panel-proveedores">
+      <div class="panel-title">Proveedores</div>
+      <div class="panel-sub">Ficha de cada proveedor · condiciones de pago para el cashflow automático</div>
+      <div class="tbl-wrap">
+        <div class="tbl-head">
+          <div class="tbl-title" id="prov-count">—</div>
+          <div class="tbl-actions">
+            <button class="btn-add" onclick="openProvModal(null)">+ Nuevo proveedor</button>
+          </div>
+        </div>
+        <div id="prov-view"></div>
+      </div>
+      <div class="ph" style="margin-top:16px"><div class="ph-icon">🔗</div><div class="ph-txt">Conexión a Ninox pendiente</div><div class="ph-sub">Cuando tengas el token de API, esta sección podrá sincronizar automáticamente la información de proveedores desde Ninox.</div></div>
+    </div>
+
+    <!-- COSTOS -->
+    <div class="panel" id="panel-costos">
+      <div class="panel-title">Costos</div>
+      <div class="panel-sub">Pre-costos automáticos por artículo y cashflow proyectado por proveedor</div>
+      <div class="tbl-wrap">
+        <div class="tbl-head">
+          <div class="tbl-title" id="costos-count">—</div>
+        </div>
+        <div class="filters" id="costos-filters"></div>
+        <div id="costos-view"></div>
+      </div>
+      <div class="tbl-wrap" style="margin-top:18px">
+        <div class="tbl-head">
+          <div class="tbl-title">💵 Cashflow proyectado por proveedor</div>
+        </div>
+        <div class="panel-sub" style="margin:-4px 0 12px">Total a pagar = Σ (costo del componente × cantidad del artículo) · Fecha de pago = fecha de ingreso del artículo + plazo del proveedor</div>
+        <div id="cashflow-view"></div>
+      </div>
+    </div>
+
+    <!-- FORECAST -->
+    <div class="panel" id="panel-forecast">
+      <div class="panel-title">Forecast</div>
+      <div class="panel-sub">Vista comercial · fechas de ingreso, costos, precios y mark-ups</div>
+      <div class="ph"><div class="ph-icon">📈</div><div class="ph-txt">Próximamente</div><div class="ph-sub">Estamos definiendo el formato de referencia para esta sección. Cuando lo tengamos, acá vas a ver automáticamente todos los artículos de la Matriz agrupados por mes de ingreso, con su costo total (suma de componentes), precio de venta y mark-up.</div></div>
     </div>
 
     <!-- CORTES -->
@@ -400,20 +431,12 @@ tbody td.mu{color:var(--mu);font-size:9px}
     </div>
 
     <div class="fsec">
-      <div class="fsec-title">Producción</div>
+      <div class="fsec-title">Fecha objetivo</div>
       <div class="fgrid">
-        <div class="field"><label>Ingreso planificado</label><input id="dr-planif" placeholder="15/6"></div>
-        <div class="field"><label>Ingreso tela</label><input id="dr-tela" placeholder="30/4"></div>
-        <div class="field"><label>Corte planificado</label><input id="dr-cortep" placeholder="21/4"></div>
-        <div class="field"><label>Corte real</label><input id="dr-corter" placeholder="8/5"></div>
-        <div class="field"><label>Taller</label><input id="dr-taller" placeholder="RONALD QUISBERT"></div>
-        <div class="field"><label>Semanas de confección</label><input id="dr-semanas" type="number" min="0" placeholder="3"></div>
-        <div class="field full"><label>Procesos / notas</label><input id="dr-procesos" placeholder="Ej: estampa → costura → bordado"></div>
-        <div class="field"><label>Fecha salida taller</label><input id="dr-salida" placeholder="13/5"></div>
-        <div class="field"><label>Estado</label>
-          <select id="dr-estado"><option value="">— sin producción —</option><option>EN TALLER</option><option>ENTREGADO</option><option>DEMORADO</option><option>PENDIENTE</option></select></div>
-        <div class="field"><label>Ingreso acordado</label><input id="dr-ingac" placeholder="4/6"></div>
-        <div class="field"><label>Ingreso real</label><input id="dr-ingre" placeholder="8/6 ó 3S"></div>
+        <div class="field"><label>Fecha de ingreso (objetivo)</label><input id="dr-ingac" placeholder="ej: 15/10"></div>
+      </div>
+      <div style="margin-top:12px;padding:11px 14px;background:var(--sf2);border:1px dashed var(--bd);border-radius:9px;font-size:10px;color:var(--mu);line-height:1.6">
+        💡 Esta es la fecha objetivo definida por diseño — apenas la cargás, el artículo aparece en <b style="color:var(--ac)">Producción</b> con esa fecha. La planificación productiva (ingreso de tela, cortes, taller, semanas de confección, etc.) se completa después, más cerca de la fecha, desde la pestaña Producción.
       </div>
     </div>
   </div>
@@ -454,30 +477,6 @@ tbody td.mu{color:var(--mu);font-size:9px}
 </div>
 
 <!-- MODAL EDITAR MATRIZ (solo campos de materia prima/costos) -->
-<div class="modal-bg" id="modal-mtz">
-  <div class="modal">
-    <div class="modal-hd"><h3 id="mm-title">Editar materia prima</h3><button class="modal-close" onclick="closeModal('modal-mtz')">✕</button></div>
-    <div class="modal-body">
-      <input type="hidden" id="mm-id">
-      <div style="margin-bottom:14px;padding:10px 12px;background:var(--sf2);border-radius:8px;font-size:11px;color:var(--mu)" id="mm-info"></div>
-      <div class="fgrid">
-        <div class="field"><label>Etapa</label><input id="mm-etapa" placeholder="PRODUCCION"></div>
-        <div class="field"><label>Color</label><input id="mm-color" placeholder="NEGRO"></div>
-        <div class="field"><label>Q Real</label><input id="mm-qreal" type="number" placeholder="0"></div>
-        <div class="field"><label>Ficha final</label><input id="mm-ficha" placeholder="OK / PENDIENTE"></div>
-        <div class="field"><label>Compra</label><input id="mm-compra" placeholder="OK / PENDIENTE"></div>
-        <div class="field"><label>MP</label><input id="mm-mp" placeholder="OK / PENDIENTE"></div>
-        <div class="field"><label>Ubicación</label><input id="mm-ubic" placeholder="DEPOSITO A"></div>
-        <div class="field"><label>Precio venta</label><input id="mm-precio" type="number" placeholder="0"></div>
-      </div>
-    </div>
-    <div class="modal-ft">
-      <button class="btn-cancel" onclick="closeModal('modal-mtz')">Cancelar</button>
-      <button class="btn-save" onclick="saveMtzModal()">Guardar</button>
-    </div>
-  </div>
-</div>
-
 <!-- MODAL: COMPONENTE / MATERIA PRIMA -->
 <div class="modal-bg" id="modal-mat">
   <div class="modal">
@@ -509,6 +508,27 @@ tbody td.mu{color:var(--mu);font-size:9px}
   </div>
 </div>
 
+<!-- MODAL: PROVEEDOR -->
+<div class="modal-bg" id="modal-prov">
+  <div class="modal">
+    <div class="modal-hd"><h3 id="pv-title">Nuevo proveedor</h3><button class="modal-close" onclick="closeModal('modal-prov')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="pv-id">
+      <div class="fgrid">
+        <div class="field full"><label>Nombre del proveedor</label><input id="pv-nombre" placeholder="ALTER"></div>
+        <div class="field"><label>Contacto</label><input id="pv-contacto" placeholder="Nombre / teléfono / email"></div>
+        <div class="field"><label>Plazo de pago (días)</label><input id="pv-plazo" type="number" min="0" placeholder="30"></div>
+        <div class="field full"><label>Condición de pago</label><input id="pv-condicion" placeholder="Ej: 30 días desde la entrega · 50% anticipo + 50% contra entrega"></div>
+        <div class="field full"><label>Notas</label><textarea id="pv-notas" rows="3" placeholder="Notas internas"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-cancel" onclick="closeModal('modal-prov')">Cancelar</button>
+      <button class="btn-save" onclick="saveProvModal()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── AUTH ──────────────────────────────────────────────────────────
 const USERS=[
@@ -519,17 +539,19 @@ const USERS=[
   {id:5,name:'Depósito',username:'deposito',password:'dep123',role:'deposito'},
 ];
 const PERMS={
-  admin:      ['dash','crear','prod','mtz','cortes','stock','cfg'],
+  admin:      ['dash','prod','mtz','proveedores','costos','forecast','cortes','stock','cfg'],
   produccion: ['dash','prod','cortes','stock'],
-  producto:   ['dash','crear','mtz','cortes'],
-  compras:    ['dash','mtz','stock'],
+  producto:   ['dash','mtz','forecast','cortes'],
+  compras:    ['dash','mtz','proveedores','costos','stock'],
   deposito:   ['stock'],
 };
 const MENU=[
   {id:'dash',  icon:'🏠',label:'Dashboard'},
-  {id:'crear', icon:'✨',label:'Creación de Producto'},
   {id:'prod',  icon:'📅',label:'Producción'},
   {id:'mtz',   icon:'📋',label:'Matriz'},
+  {id:'proveedores',icon:'🤝',label:'Proveedores'},
+  {id:'costos',icon:'💰',label:'Costos'},
+  {id:'forecast',icon:'📈',label:'Forecast'},
   {id:'cortes',icon:'✂️',label:'Cortes'},
   {id:'stock', icon:'📦',label:'División de Stock'},
   {id:'cfg',   icon:'⚙️',label:'Configuración'},
@@ -561,8 +583,9 @@ function showPanel(id){
   document.querySelectorAll('.sb-item').forEach(b=>b.classList.remove('active'));
   const p=document.getElementById('panel-'+id);if(p)p.classList.add('active');
   const b=document.querySelector(`.sb-item[data-panel="${id}"]`);if(b)b.classList.add('active');
-  if(id==='dash')renderDash();if(id==='crear')renderCrear();
+  if(id==='dash')renderDash();
   if(id==='prod')renderProd();if(id==='mtz')renderMtz();if(id==='cfg')renderCfg();
+  if(id==='proveedores')renderProveedores();if(id==='costos')renderCostos();
 }
 
 // ── STORAGE ───────────────────────────────────────────────────────
@@ -611,6 +634,18 @@ function migrateMateriales(){
   if(changed)setData(newRows);
 }
 
+// ── PROVEEDORES ───────────────────────────────────────────────────
+function getProv(){try{return JSON.parse(localStorage.getItem('tw_hub_proveedores')||'null');}catch{return null;}}
+function setProv(v){localStorage.setItem('tw_hub_proveedores',JSON.stringify(v));}
+function nextProvId(){const list=getProv()||[];return(list.length?Math.max(...list.map(p=>p.id||0)):0)+1;}
+function initProvData(){
+  if(getProv())return;
+  const names=new Set();
+  (getData()||[]).forEach(r=>(r.materiales||[]).forEach(m=>{if(m.prov)names.add(m.prov);}));
+  setProv([...names].sort().map((n,i)=>({id:i+1,nombre:n,contacto:'',condicion:'',plazoDias:30,notas:''})));
+}
+function findProv(nombre){return(getProv()||[]).find(p=>(p.nombre||'').trim().toLowerCase()===(nombre||'').trim().toLowerCase());}
+
 // ── UTILS ─────────────────────────────────────────────────────────
 const LC={DIA:'#b5892a',NOCHE:'#7c3aed','CÁPSULA 3':'#0d9488',DENIM:'#2563eb',PT:'#16a34a',CONTINUO:'#d97706'};
 const PAL=['#16a34a','#2563eb','#7c3aed','#d97706','#0d9488','#dc2626','#b5892a'];
@@ -623,11 +658,6 @@ function gV(id){const e=document.getElementById(id);return e?e.value:'';}
 function sV(id,v){const e=document.getElementById(id);if(e)e.value=(v??'');}
 function uniq(arr){return[...new Set(arr)].filter(Boolean).sort();}
 function toast(msg,c='var(--gn)'){const t=document.getElementById('toast');t.textContent=msg;t.style.borderLeft='3px solid '+c;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
-function faseBadge(r){
-  if(r.estado==='ENTREGADO')return'<span class="badge fase-done">ENTREGADO</span>';
-  if(r.estado&&r.estado!=='')return'<span class="badge fase-prod">EN PRODUCCIÓN</span>';
-  return'<span class="badge fase-diseno">DISEÑO</span>';
-}
 function estadoBadge(e){
   const u=(e||'').toUpperCase();
   if(u==='ENTREGADO')return`<span class="badge b-entregado">ENTREGADO</span>`;
@@ -677,45 +707,6 @@ function renderDash(){
   up.innerHTML=!upcoming.length?'<div style="font-size:11px;color:var(--mu)">Sin fechas próximas</div>':upcoming.map(r=>{const dd=diffD(r.d,TODAY);const c=dd<0?'var(--rd)':dd<=5?'var(--or)':'var(--gn)';return`<div class="up-item"><span class="up-name" title="${r.nombre}">${r.nombre}</span><span class="up-date">${r.ingAcord}</span><span class="up-days" style="color:${c}">${dd===0?'HOY':dd<0?Math.abs(dd)+'d atrás':'en '+dd+'d'}</span></div>`;}).join('');
 }
 
-// ── CREACIÓN ──────────────────────────────────────────────────────
-let CF={mes:'ALL',linea:'ALL',q:''};
-function renderCrear(){
-  const rows=getData()||[];
-  const meses=uniq(rows.map(r=>r.mes)),lineas=uniq(rows.map(r=>r.linea));
-  document.getElementById('crear-filters').innerHTML=`
-    <select class="flt" onchange="CF.mes=this.value;renderCrearView()"><option value="ALL">Todos los meses</option>${meses.map(m=>`<option>${m}</option>`).join('')}</select>
-    <select class="flt" onchange="CF.linea=this.value;renderCrearView()"><option value="ALL">Todas las líneas</option>${lineas.map(l=>`<option>${l}</option>`).join('')}</select>
-    <input class="flt-search" placeholder="Buscar artículo..." oninput="CF.q=this.value;renderCrearView()">`;
-  renderCrearView();
-}
-function filtCrear(){
-  return(getData()||[]).filter(r=>(CF.mes==='ALL'||r.mes===CF.mes)&&(CF.linea==='ALL'||r.linea===CF.linea)&&(!CF.q||r.nombre.toLowerCase().includes(CF.q.toLowerCase())||r.codigo.toLowerCase().includes(CF.q.toLowerCase())));
-}
-function renderCrearView(){
-  const rows=filtCrear();
-  document.getElementById('crear-count').textContent=`${rows.length} artículo${rows.length!==1?'s':''}`;
-  const el=document.getElementById('crear-view');
-  if(!rows.length){el.innerHTML='<div class="empty"><div>🔍</div><div>Sin resultados</div></div>';return;}
-  el.innerHTML=`<div class="tbl-scroll"><table>
-    <thead><tr><th>Mes</th><th>Línea</th><th>Código</th><th>Artículo</th><th>Color</th><th class="r">Cant</th><th>Fase</th><th>Taller</th><th>Componentes</th><th class="r">Total $</th><th>Ficha</th><th>Compra</th><th>MP</th><th></th></tr></thead>
-    <tbody>${rows.map(r=>{const mats=r.materiales||[];const total=mats.length?mats.reduce((a,m)=>a+(m.total||0),0):(r.total||0);return`<tr>
-      <td class="mu">${r.mes||''}</td><td>${lineaBadge(r.linea)}</td>
-      <td class="mu">${r.codigo||''}</td>
-      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis" title="${r.nombre}">${r.nombre||''}</td>
-      <td class="mu">${r.color||''}</td><td class="r">${fmtN(r.cant||0)}</td>
-      <td>${faseBadge(r)}</td>
-      <td style="font-size:9px;max-width:120px;overflow:hidden;text-overflow:ellipsis">${r.taller||'—'}</td>
-      <td style="font-size:9px">${mats.length?mats.length+' comp.':'—'}</td>
-      <td class="r" style="color:var(--ac);font-weight:500;font-size:9px">${total?fmtV(total):''}</td>
-      <td>${okBadge(r.ficha)}</td><td>${okBadge(r.compra)}</td><td>${okBadge(r.mp)}</td>
-      <td><div class="row-act">
-        <button class="btn-sm edit" onclick="openDrawer(${r.id})">✏ Editar</button>
-        <button class="btn-sm del" onclick="delArticle(${r.id})">✕</button>
-      </div></td>
-    </tr>`;}).join('')}</tbody>
-  </table></div>`;
-}
-
 // ── DRAWER ────────────────────────────────────────────────────────
 function openDrawer(id){
   const r=id?(getData()||[]).find(x=>x.id===id):null;
@@ -725,11 +716,7 @@ function openDrawer(id){
   sV('dr-marca',r?.marca||'TW');sV('dr-cant',r?.cant||'');sV('dr-qreal',r?.qreal||'');
   sV('dr-ficha',r?.ficha||'');sV('dr-compra',r?.compra||'');sV('dr-mp',r?.mp||'');
   sV('dr-ubic',r?.ubic||'');sV('dr-precio',r?.precio||'');
-  sV('dr-planif',r?.planificado||'');sV('dr-tela',r?.ingresoTela||'');
-  sV('dr-cortep',r?.cortePlan||'');sV('dr-corter',r?.corteReal||'');
-  sV('dr-taller',r?.taller||'');sV('dr-semanas',r?.semanas||'');sV('dr-procesos',r?.procesos||'');
-  sV('dr-salida',r?.fechaSalida||'');sV('dr-estado',r?.estado||'');
-  sV('dr-ingac',r?.ingAcord||'');sV('dr-ingre',r?.ingReal||'');
+  sV('dr-ingac',r?.ingAcord||'');
   document.getElementById('drawer-title').textContent=r?`Editar — ${r.nombre}`:'Nuevo artículo';
   document.getElementById('drawer-overlay').classList.add('open');
   document.getElementById('drawer').classList.add('open');
@@ -750,24 +737,26 @@ function saveDrawer(){
     ficha:gV('dr-ficha'),compra:gV('dr-compra'),mp:gV('dr-mp'),
     ubic:gV('dr-ubic'),precio:parseFloat(gV('dr-precio'))||0,
     materiales:orig?.materiales||[],
-    planificado:gV('dr-planif'),ingresoTela:gV('dr-tela'),
-    cortePlan:gV('dr-cortep'),corteReal:gV('dr-corter'),
-    taller:gV('dr-taller'),semanas:parseFloat(gV('dr-semanas'))||0,procesos:gV('dr-procesos'),
-    fechaSalida:gV('dr-salida'),estado:gV('dr-estado'),
-    ingAcord:gV('dr-ingac'),ingReal:gV('dr-ingre'),
+    ingAcord:gV('dr-ingac'),
+    // Planificación productiva: se completa después desde la pestaña Producción
+    planificado:orig?.planificado||'',ingresoTela:orig?.ingresoTela||'',
+    cortePlan:orig?.cortePlan||'',corteReal:orig?.corteReal||'',
+    taller:orig?.taller||'',semanas:orig?.semanas||0,procesos:orig?.procesos||'',
+    fechaSalida:orig?.fechaSalida||'',estado:orig?.estado||'',
+    ingReal:orig?.ingReal||'',
   };
   let rows=getData()||[];
   if(id)rows=rows.map(r=>r.id===parseInt(id)?row:r);else rows.push(row);
   setData(rows);closeDrawer();
-  if(document.getElementById('panel-crear').classList.contains('active'))renderCrear();
   if(document.getElementById('panel-prod').classList.contains('active'))renderProd();
   if(document.getElementById('panel-mtz').classList.contains('active'))renderMtz();
+  if(document.getElementById('panel-costos').classList.contains('active'))renderCostos();
   toast('Artículo guardado ✓');
 }
 function delArticle(id){
-  if(!confirm('¿Eliminar este artículo?'))return;
+  if(!confirm('¿Eliminar este artículo? Se perderán también sus componentes cargados.'))return;
   setData((getData()||[]).filter(r=>r.id!==id));
-  renderCrear();toast('Eliminado','var(--rd)');
+  MTZ_OPEN.delete(id);renderMtz();toast('Artículo eliminado','var(--rd)');
 }
 
 // ── PRODUCCIÓN ────────────────────────────────────────────────────
@@ -927,27 +916,12 @@ function renderMtzView(){
       <td class="mu">${r.ingAcord||r.planificado||''}</td>
       <td>${okBadge(r.ficha)}</td><td>${okBadge(r.compra)}</td><td>${okBadge(r.mp)}</td>
       <td class="r" style="color:var(--ac);font-weight:500">${total?fmtV(total):''}</td>
-      <td><button class="btn-sm edit" onclick="event.stopPropagation();openMtzModal(${r.id})">✏</button></td>
+      <td><div class="row-act">
+        <button class="btn-sm edit" onclick="event.stopPropagation();openDrawer(${r.id})">✏</button>
+        <button class="btn-sm del" onclick="event.stopPropagation();delArticle(${r.id})">🗑</button>
+      </div></td>
     </tr>${matRowHtml(r)}`;}).join('')}</tbody>
   </table></div>`;
-}
-function openMtzModal(id){
-  const r=(getData()||[]).find(x=>x.id===id);if(!r)return;
-  sV('mm-id',r.id);document.getElementById('mm-info').textContent=`${r.codigo||''} — ${r.nombre} · Cant: ${r.cant}`;
-  sV('mm-etapa',r.etapa||'');sV('mm-color',r.color||'');sV('mm-qreal',r.qreal||'');
-  sV('mm-ficha',r.ficha||'');sV('mm-compra',r.compra||'');sV('mm-mp',r.mp||'');
-  sV('mm-ubic',r.ubic||'');sV('mm-precio',r.precio||'');
-  document.getElementById('modal-mtz').classList.add('open');
-}
-function saveMtzModal(){
-  const id=parseInt(gV('mm-id'));
-  const rows=getData()||[];
-  const newRows=rows.map(r=>r.id!==id?r:{...r,
-    etapa:gV('mm-etapa'),color:gV('mm-color'),qreal:parseFloat(gV('mm-qreal'))||0,
-    ficha:gV('mm-ficha'),compra:gV('mm-compra'),mp:gV('mm-mp'),
-    ubic:gV('mm-ubic'),precio:parseFloat(gV('mm-precio'))||0,
-  });
-  setData(newRows);closeModal('modal-mtz');renderMtz();toast('Matriz actualizada ✓');
 }
 
 // ── COMPONENTES / MATERIA PRIMA (por artículo) ───────────────────
@@ -991,6 +965,128 @@ function delMat(articleId,matId){
   setData(newRows);MTZ_OPEN.add(articleId);renderMtzView();toast('Componente eliminado','var(--rd)');
 }
 
+// ── PROVEEDORES ───────────────────────────────────────────────────
+function renderProveedores(){
+  const list=getProv()||[];
+  document.getElementById('prov-count').textContent=`${list.length} proveedor${list.length!==1?'es':''}`;
+  const el=document.getElementById('prov-view');
+  if(!list.length){el.innerHTML='<div class="empty">🤝 Sin proveedores cargados todavía</div>';return;}
+  el.innerHTML=`<div class="tbl-scroll"><table>
+    <thead><tr><th>Proveedor</th><th>Contacto</th><th>Condición de pago</th><th class="r">Plazo (días)</th><th>Notas</th><th></th></tr></thead>
+    <tbody>${list.map(p=>`<tr>
+      <td style="font-weight:500">${p.nombre||''}</td>
+      <td class="mu">${p.contacto||'—'}</td>
+      <td class="mu">${p.condicion||'—'}</td>
+      <td class="r">${p.plazoDias||0}</td>
+      <td class="mu" style="max-width:220px;overflow:hidden;text-overflow:ellipsis" title="${p.notas||''}">${p.notas||''}</td>
+      <td><div class="row-act">
+        <button class="btn-sm edit" onclick="openProvModal(${p.id})">✏</button>
+        <button class="btn-sm del" onclick="delProv(${p.id})">🗑</button>
+      </div></td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+function openProvModal(id){
+  const p=id?(getProv()||[]).find(x=>x.id===id):null;
+  sV('pv-id',p?.id||'');
+  document.getElementById('pv-title').textContent=p?'Editar proveedor':'Nuevo proveedor';
+  sV('pv-nombre',p?.nombre||'');sV('pv-contacto',p?.contacto||'');
+  sV('pv-condicion',p?.condicion||'');sV('pv-plazo',p?.plazoDias??30);sV('pv-notas',p?.notas||'');
+  document.getElementById('modal-prov').classList.add('open');
+}
+function saveProvModal(){
+  const id=gV('pv-id');
+  const item={
+    id:id?parseInt(id):nextProvId(),
+    nombre:gV('pv-nombre').trim(),contacto:gV('pv-contacto'),
+    condicion:gV('pv-condicion'),plazoDias:parseFloat(gV('pv-plazo'))||0,notas:gV('pv-notas'),
+  };
+  if(!item.nombre){toast('El proveedor necesita un nombre','var(--rd)');return;}
+  let list=getProv()||[];
+  if(id)list=list.map(p=>p.id===parseInt(id)?item:p);else list.push(item);
+  setProv(list);closeModal('modal-prov');renderProveedores();toast(id?'Proveedor actualizado ✓':'Proveedor agregado ✓');
+}
+function delProv(id){
+  if(!confirm('¿Eliminar este proveedor?'))return;
+  setProv((getProv()||[]).filter(p=>p.id!==id));renderProveedores();toast('Proveedor eliminado','var(--rd)');
+}
+
+// ── COSTOS ────────────────────────────────────────────────────────
+let COF={mes:'ALL'};
+function articleCost(r){return(r.materiales||[]).reduce((a,m)=>a+(m.total||0),0);}
+function renderCostos(){
+  const rows=getData()||[];
+  const meses=uniq(rows.map(r=>r.mes));
+  document.getElementById('costos-filters').innerHTML=`
+    <select class="flt" onchange="COF.mes=this.value;renderCostosView()"><option value="ALL">Todos los meses</option>${meses.map(m=>`<option>${m}</option>`).join('')}</select>`;
+  renderCostosView();
+}
+function renderCostosView(){
+  const rows=(getData()||[]).filter(r=>COF.mes==='ALL'||r.mes===COF.mes);
+  document.getElementById('costos-count').textContent=`${rows.length} artículo${rows.length!==1?'s':''}`;
+  const el=document.getElementById('costos-view');
+  if(!rows.length){el.innerHTML='<div class="empty">🔍 Sin resultados</div>';}
+  else{
+    el.innerHTML=`<div class="tbl-scroll"><table>
+      <thead><tr><th>Mes</th><th>Línea</th><th>Código</th><th>Artículo</th><th class="r">Cant</th>
+      <th class="r">Costo unitario (Σ comp.)</th><th class="r">Pre-costo total</th>
+      <th class="r">Precio venta</th><th class="r">Mark-up</th></tr></thead>
+      <tbody>${rows.map(r=>{
+        const costoUnit=articleCost(r);const total=Math.round(costoUnit*(r.cant||0));
+        const markup=costoUnit?((((r.precio||0)-costoUnit)/costoUnit)*100):null;
+        return`<tr>
+        <td class="mu">${r.mes||''}</td><td>${lineaBadge(r.linea)}</td>
+        <td class="mu">${r.codigo||''}</td>
+        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${r.nombre}">${r.nombre}</td>
+        <td class="r">${r.cant||0}</td>
+        <td class="r" style="color:var(--or)">${costoUnit?fmtV(costoUnit):'—'}</td>
+        <td class="r" style="color:var(--ac);font-weight:500">${total?fmtV(total):'—'}</td>
+        <td class="r" style="color:var(--bl)">${r.precio?fmtV(r.precio):'—'}</td>
+        <td class="r" style="color:${markup==null?'var(--mu)':markup<0?'var(--rd)':'var(--gn)'}">${markup==null?'—':markup.toFixed(0)+'%'}</td>
+      </tr>`;}).join('')}</tbody>
+    </table></div>`;
+  }
+  renderCashflow();
+}
+function renderCashflow(){
+  const rows=getData()||[];
+  const byProv={};
+  rows.forEach(r=>{
+    const fecha=parseD(r.ingAcord)||parseD(r.planificado);
+    (r.materiales||[]).forEach(m=>{
+      if(!m.prov||!m.costo)return;
+      const monto=Math.round((m.costo||0)*(r.cant||0));
+      if(!monto)return;
+      const key=m.prov.trim();
+      if(!byProv[key])byProv[key]={items:[],total:0};
+      byProv[key].items.push({articulo:r.nombre,monto,fecha});
+      byProv[key].total+=monto;
+    });
+  });
+  const keys=Object.keys(byProv).sort();
+  const el=document.getElementById('cashflow-view');
+  if(!keys.length){el.innerHTML='<div class="empty">💵 Cargá componentes con proveedor y costo para generar el cashflow</div>';return;}
+  el.innerHTML=`<div class="tbl-scroll"><table>
+    <thead><tr><th>Proveedor</th><th>Condición de pago</th><th class="r">Plazo</th>
+    <th class="r">Total a pagar</th><th>Próxima fecha de pago</th><th class="r"># Artículos</th></tr></thead>
+    <tbody>${keys.map(k=>{
+      const data=byProv[k];const prov=findProv(k);
+      const plazo=prov?.plazoDias||0;
+      const fechas=data.items.map(it=>it.fecha?new Date(it.fecha.getTime()+plazo*86400000):null).filter(Boolean).sort((a,b)=>a-b);
+      const proxima=fechas.length?`${fechas[0].getDate()}/${fechas[0].getMonth()+1}`:'—';
+      return`<tr>
+      <td style="font-weight:500">${k}${!prov?' <span class="mu" style="font-size:9px">(sin ficha)</span>':''}</td>
+      <td class="mu">${prov?.condicion||'—'}</td>
+      <td class="r mu">${prov?(prov.plazoDias+' días'):'—'}</td>
+      <td class="r" style="color:var(--ac);font-weight:600">${fmtV(data.total)}</td>
+      <td class="mu">${proxima}</td>
+      <td class="r mu">${data.items.length}</td>
+    </tr>`;}).join('')}</tbody>
+    <tfoot><tr><td colspan="3" class="r mu" style="padding:9px 10px;font-size:9px;letter-spacing:1px;text-transform:uppercase">Total proyectado</td>
+    <td class="r" style="padding:9px 10px;color:var(--ac);font-weight:700">${fmtV(keys.reduce((a,k)=>a+byProv[k].total,0))}</td><td colspan="2"></td></tr></tfoot>
+  </table></div>`;
+}
+
 // ── CONFIG ────────────────────────────────────────────────────────
 const RDESC={admin:'Acceso completo',produccion:'Producción + Cortes + Stock',producto:'Creación + Matriz + Cortes',compras:'Matriz + Stock',deposito:'Solo División de Stock'};
 function renderCfg(){
@@ -1008,7 +1104,7 @@ document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',fun
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.modal-bg.open').forEach(m=>m.classList.remove('open'));closeDrawer();}});
 
 // ── INIT ──────────────────────────────────────────────────────────
-initData();checkAuth();
+initData();initProvData();checkAuth();
 </script>
 </body>
 </html>
