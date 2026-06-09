@@ -216,6 +216,15 @@ tbody td.mu{color:var(--mu);font-size:9px}
 .toast{position:fixed;bottom:28px;right:28px;background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:12px 20px;font-size:11px;color:var(--tx);z-index:999;box-shadow:0 8px 30px rgba(0,0,0,.1);opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
 .toast.show{opacity:1;transform:translateY(0)}
 
+.oc-check-row{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid rgba(0,0,0,.05);font-size:10px;transition:background .12s}
+.oc-check-row:hover{background:rgba(0,0,0,.02)}
+.oc-check-row input[type=checkbox]{width:15px;height:15px;accent-color:var(--ac);flex-shrink:0;cursor:pointer}
+.oc-qty{width:75px;background:var(--sf2);border:1px solid var(--bd);border-radius:6px;padding:4px 7px;font-size:10px;font-family:'DM Sans',sans-serif;text-align:right;color:var(--tx)}
+.oc-qty:focus{outline:none;border-color:var(--ac)}
+@media print{
+  body>*:not(#print-area){display:none!important}
+  #print-area{display:block!important;position:fixed;inset:0;padding:20px;background:#fff;z-index:9999}
+}
 @media(max-width:900px){
   .sidebar{width:62px}.sb-item span,.sb-brand .sb-tagline,.sb-user .sb-uname,.sb-user .sb-urole,.sb-logout{display:none}
   .main{margin-left:62px}.panel{padding:20px 16px 50px}
@@ -324,6 +333,23 @@ tbody td.mu{color:var(--mu);font-size:9px}
         <div id="prov-view"></div>
       </div>
       <div class="ph" style="margin-top:16px"><div class="ph-icon">🔗</div><div class="ph-txt">Conexión a Ninox pendiente</div><div class="ph-sub">Cuando tengas el token de API, esta sección podrá sincronizar automáticamente la información de proveedores desde Ninox.</div></div>
+
+      <!-- ÓRDENES DE COMPRA -->
+      <div class="tbl-wrap" style="margin-top:20px">
+        <div class="tbl-head">
+          <div class="tbl-title">📋 Órdenes de Compra</div>
+          <div class="tbl-actions">
+            <select class="flt" id="oc-prov-sel" onchange="renderOCSection(this.value)">
+              <option value="">— seleccioná un proveedor —</option>
+            </select>
+          </div>
+        </div>
+        <div id="oc-section"><div class="empty" style="padding:28px 20px;font-size:10px">Seleccioná un proveedor para ver sus materiales pendientes de compra</div></div>
+        <div id="oc-actions" style="display:none;padding:14px 20px;border-top:1px solid var(--bd);display:flex;gap:10px;align-items:center">
+          <span id="oc-summary" style="font-size:10px;color:var(--mu);flex:1"></span>
+          <button class="btn-add" onclick="openOCModal()">🖨 Ver / Descargar Orden de Compra</button>
+        </div>
+      </div>
     </div>
 
     <!-- COSTOS -->
@@ -387,6 +413,20 @@ tbody td.mu{color:var(--mu);font-size:9px}
     </div>
 
   </main>
+</div>
+
+<!-- MODAL: ORDEN DE COMPRA -->
+<div class="modal-bg" id="modal-oc">
+  <div class="modal" style="width:860px;max-height:95vh">
+    <div class="modal-hd">
+      <h3 id="oc-modal-title">Orden de Compra</h3>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn-save" onclick="printOC()" style="font-size:9px;padding:7px 16px">🖨 Imprimir / PDF</button>
+        <button class="modal-close" onclick="closeModal('modal-oc')">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" id="oc-modal-body"></div>
+  </div>
 </div>
 
 <!-- TOAST -->
@@ -814,9 +854,13 @@ function saveDrawer(){
   let rows=getData()||[];
   if(id)rows=rows.map(r=>r.id===parseInt(id)?row:r);else rows.push(row);
   setData(rows);closeDrawer();
-  if(document.getElementById('panel-prod').classList.contains('active'))renderProd();
-  if(document.getElementById('panel-mtz').classList.contains('active'))renderMtz();
-  if(document.getElementById('panel-costos').classList.contains('active'))renderCostos();
+  ['prod','mtz','costos','forecast','stock'].forEach(p=>{
+    if(document.getElementById('panel-'+p)?.classList.contains('active')){
+      if(p==='prod')renderProd();else if(p==='mtz')renderMtz();
+      else if(p==='costos')renderCostos();else if(p==='forecast')renderForecast();
+      else if(p==='stock')renderStock();
+    }
+  });
   toast('Artículo guardado ✓');
 }
 function delArticle(id){
@@ -1340,6 +1384,7 @@ function renderProveedores(){
       </div></td>
     </tr>`).join('')}</tbody>
   </table></div>`;
+  populateOCProvSel();
 }
 function openProvModal(id){
   const p=id?(getProv()||[]).find(x=>x.id===id):null;
@@ -1731,6 +1776,186 @@ function refreshQEditRow(input,articleId,ci){
   if(gapEl)gapEl.innerHTML=gap===0?'<span class="stock-gap-ok">✓</span>':gap>0?`<span class="stock-gap-under">−${fmtN(gap)}</span>`:`<span class="stock-gap-over">+${fmtN(Math.abs(gap))}</span>`;
 }
 
+// ── ÓRDENES DE COMPRA ────────────────────────────────────────────
+function getPendingBySupplier(){
+  const rows=getData()||[];
+  const byProv={};
+  rows.forEach(r=>{
+    const colores=(r.colores&&r.colores.length)?r.colores:[{color:r.color||'',cant:r.cant||0}];
+    (r.materiales||[]).forEach(m=>{
+      if(m.comprado||!m.cantmp||!m.prov)return;
+      const prov=m.prov.trim();
+      if(!byProv[prov])byProv[prov]=[];
+      const clr=colores[m.colorIdx??0];
+      byProv[prov].push({
+        _rowId:r.id,_matId:m.id,
+        codtw:m.codtw||'',materia:m.materia||'',tipo:m.tipo||'',
+        colorArticulo:clr?.color||'',colorProv:m.colorprov||'',
+        articulo:r.nombre,mes:r.mes||'',
+        cantmp:m.cantmp||0,precio:m.precio||0,total:m.total||0,
+      });
+    });
+  });
+  return byProv;
+}
+function populateOCProvSel(){
+  const byProv=getPendingBySupplier();
+  const sel=document.getElementById('oc-prov-sel');if(!sel)return;
+  const prev=sel.value;
+  sel.innerHTML='<option value="">— seleccioná un proveedor —</option>'+
+    Object.keys(byProv).sort().map(p=>`<option value="${p}">${p} (${byProv[p].length} ítem${byProv[p].length!==1?'s':''})</option>`).join('');
+  if(prev)sel.value=prev;
+}
+function renderOCSection(prov){
+  const el=document.getElementById('oc-section');
+  const actEl=document.getElementById('oc-actions');
+  if(!prov){
+    el.innerHTML='<div class="empty" style="padding:28px 20px;font-size:10px">Seleccioná un proveedor para ver sus materiales pendientes de compra</div>';
+    actEl.style.display='none';return;
+  }
+  const byProv=getPendingBySupplier();
+  const items=byProv[prov]||[];
+  if(!items.length){
+    el.innerHTML='<div class="empty" style="padding:28px 20px">✓ Sin materiales pendientes de compra para este proveedor</div>';
+    actEl.style.display='none';return;
+  }
+  actEl.style.display='flex';
+  // group by materia+colorProv for display (show article breakdown)
+  el.innerHTML=`
+  <div style="padding:10px 20px;background:var(--sf2);border-bottom:1px solid var(--bd);font-size:9px;color:var(--mu);display:flex;align-items:center;gap:12px">
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+      <input type="checkbox" id="oc-check-all" checked onchange="toggleAllOC(this)" style="width:14px;height:14px;accent-color:var(--ac)"> Seleccionar todo
+    </label>
+    <span style="margin-left:auto">Cantidad editable · el sistema propone la cantidad pendiente calculada</span>
+  </div>
+  <div id="oc-rows">
+    ${items.map((it,i)=>{
+      const provData=findProv(prov);
+      return`<div class="oc-check-row" id="oc-row-${i}">
+        <input type="checkbox" checked id="oc-cb-${i}" onchange="updateOCSummary()">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.materia||'—'}</div>
+          <div style="font-size:8px;color:var(--mu);margin-top:1px">
+            ${it.codtw?`<b>${it.codtw}</b> · `:''}${it.tipo} · Color prov: ${it.colorProv||'—'} · Para: <b>${it.articulo}</b>${it.colorArticulo?' ('+it.colorArticulo+')':''} · ${it.mes}
+          </div>
+        </div>
+        <div style="text-align:right;min-width:110px">
+          <div style="font-size:8px;color:var(--mu);margin-bottom:2px">Cant. a comprar</div>
+          <input class="oc-qty" type="number" min="0" step="0.01" value="${it.cantmp}" id="oc-qty-${i}" oninput="updateOCSummary()">
+        </div>
+        <div style="text-align:right;min-width:80px">
+          <div style="font-size:8px;color:var(--mu);margin-bottom:2px">Precio unit.</div>
+          <div style="font-size:10px;font-weight:500">${it.precio?fmtV(it.precio):'—'}</div>
+        </div>
+        <div style="text-align:right;min-width:85px">
+          <div style="font-size:8px;color:var(--mu);margin-bottom:2px">Total</div>
+          <div style="font-size:10px;font-weight:600;color:var(--ac)" id="oc-tot-${i}">${it.total?fmtV(it.total):''}</div>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+  updateOCSummary();
+}
+function toggleAllOC(cb){
+  const byProv=getPendingBySupplier();
+  const prov=document.getElementById('oc-prov-sel')?.value;
+  const n=(byProv[prov]||[]).length;
+  for(let i=0;i<n;i++){const el=document.getElementById(`oc-cb-${i}`);if(el)el.checked=cb.checked;}
+  updateOCSummary();
+}
+function updateOCSummary(){
+  const byProv=getPendingBySupplier();
+  const prov=document.getElementById('oc-prov-sel')?.value;
+  const items=byProv[prov]||[];
+  let count=0,total=0;
+  items.forEach((_,i)=>{
+    const cb=document.getElementById(`oc-cb-${i}`);
+    const qty=parseFloat(document.getElementById(`oc-qty-${i}`)?.value)||0;
+    const precio=items[i].precio||0;
+    const subtotal=qty*precio;
+    const totEl=document.getElementById(`oc-tot-${i}`);
+    if(totEl)totEl.textContent=subtotal?fmtV(subtotal):'';
+    if(cb?.checked){count++;total+=subtotal;}
+  });
+  const sumEl=document.getElementById('oc-summary');
+  if(sumEl)sumEl.textContent=`${count} ítem${count!==1?'s':''} seleccionado${count!==1?'s':''} · Total: ${fmtV(total)}`;
+}
+function openOCModal(){
+  const byProv=getPendingBySupplier();
+  const prov=document.getElementById('oc-prov-sel')?.value;if(!prov)return;
+  const items=byProv[prov]||[];
+  const provData=findProv(prov);
+  const selected=items.map((it,i)=>{
+    const cb=document.getElementById(`oc-cb-${i}`);
+    const qty=parseFloat(document.getElementById(`oc-qty-${i}`)?.value)||0;
+    return cb?.checked&&qty>0?{...it,cantmp:qty,total:qty*(it.precio||0)}:null;
+  }).filter(Boolean);
+  if(!selected.length){toast('Seleccioná al menos un ítem con cantidad','var(--rd)');return;}
+  const totalGeneral=selected.reduce((s,it)=>s+it.total,0);
+  const fecha=`${TODAY.getDate()}/${TODAY.getMonth()+1}/${TODAY.getFullYear()}`;
+  document.getElementById('oc-modal-title').textContent=`Orden de Compra — ${prov}`;
+  document.getElementById('oc-modal-body').innerHTML=`
+  <div id="oc-print-content" style="font-family:'DM Sans',sans-serif;font-size:11px;color:#1c1917">
+    <!-- Header OC -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #b5892a">
+      <div>
+        <div style="font-family:'Playfair Display',serif;font-size:22px;letter-spacing:4px;color:#b5892a">TOP WHITE</div>
+        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#9a8f87;margin-top:2px">Orden de Compra</div>
+      </div>
+      <div style="text-align:right;font-size:10px;color:#9a8f87">
+        <div><b style="color:#1c1917">Fecha:</b> ${fecha}</div>
+        <div style="margin-top:4px"><b style="color:#1c1917">Proveedor:</b> ${prov}</div>
+        ${provData?.contacto?`<div><b style="color:#1c1917">Contacto:</b> ${provData.contacto}</div>`:''}
+        ${provData?.condicion?`<div><b style="color:#1c1917">Condición:</b> ${provData.condicion}</div>`:''}
+      </div>
+    </div>
+    <!-- Tabla OC -->
+    <table style="width:100%;border-collapse:collapse;font-size:10px">
+      <thead>
+        <tr style="background:#f0ede8">
+          <th style="padding:8px 10px;text-align:left;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:#9a8f87;border-bottom:1px solid #e5e2de">Cod TW</th>
+          <th style="padding:8px 10px;text-align:left;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:#9a8f87;border-bottom:1px solid #e5e2de">Descripción</th>
+          <th style="padding:8px 10px;text-align:left;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:#9a8f87;border-bottom:1px solid #e5e2de">Color prov.</th>
+          <th style="padding:8px 10px;text-align:left;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:#9a8f87;border-bottom:1px solid #e5e2de">Para artículo</th>
+          <th style="padding:8px 10px;text-align:right;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:#9a8f87;border-bottom:1px solid #e5e2de">Cant.</th>
+          <th style="padding:8px 10px;text-align:right;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:#9a8f87;border-bottom:1px solid #e5e2de">Precio unit.</th>
+          <th style="padding:8px 10px;text-align:right;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:#9a8f87;border-bottom:1px solid #e5e2de">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${selected.map((it,i)=>`<tr style="border-bottom:1px solid #f0ede8;${i%2===1?'background:#faf9f7':''}">
+          <td style="padding:8px 10px;color:#9a8f87">${it.codtw||'—'}</td>
+          <td style="padding:8px 10px;font-weight:500">${it.materia||'—'}<br><span style="font-size:8px;color:#9a8f87">${it.tipo}</span></td>
+          <td style="padding:8px 10px;color:#9a8f87">${it.colorProv||'—'}</td>
+          <td style="padding:8px 10px;font-size:9px">${it.articulo}${it.colorArticulo?' · '+it.colorArticulo:''}<br><span style="color:#9a8f87">${it.mes}</span></td>
+          <td style="padding:8px 10px;text-align:right;font-weight:500">${it.cantmp}</td>
+          <td style="padding:8px 10px;text-align:right;color:#9a8f87">${it.precio?fmtV(it.precio):'—'}</td>
+          <td style="padding:8px 10px;text-align:right;font-weight:600;color:#b5892a">${it.total?fmtV(it.total):'—'}</td>
+        </tr>`).join('')}
+      </tbody>
+      <tfoot>
+        <tr style="background:#f0ede8;border-top:2px solid #b5892a">
+          <td colspan="6" style="padding:10px;text-align:right;font-size:10px;font-weight:600;letter-spacing:.5px">TOTAL ORDEN</td>
+          <td style="padding:10px;text-align:right;font-size:13px;font-weight:700;color:#b5892a">${fmtV(totalGeneral)}</td>
+        </tr>
+      </tfoot>
+    </table>
+    <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e2de;font-size:9px;color:#9a8f87;display:flex;justify-content:space-between">
+      <div>TOP WHITE — Orden generada el ${fecha}</div>
+      <div>${selected.length} ítem${selected.length!==1?'s':''} · ${prov}</div>
+    </div>
+  </div>`;
+  document.getElementById('modal-oc').classList.add('open');
+}
+function printOC(){
+  const content=document.getElementById('oc-print-content')?.innerHTML;if(!content)return;
+  const w=window.open('','_blank','width=900,height=700');
+  w.document.write(`<!DOCTYPE html><html><head><title>Orden de Compra — TOP WHITE</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',sans-serif;padding:30px;background:#fff;color:#1c1917}</style>
+  </head><body>${content}</body></html>`);
+  w.document.close();w.focus();setTimeout(()=>{w.print();},600);
+}
 // ── CONFIG ────────────────────────────────────────────────────────
 const RDESC={admin:'Acceso completo',produccion:'Producción + Cortes + Stock',producto:'Creación + Matriz + Cortes',compras:'Matriz + Stock',deposito:'Solo División de Stock'};
 function renderCfg(){
