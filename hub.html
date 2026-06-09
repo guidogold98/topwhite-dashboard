@@ -636,6 +636,8 @@ function showPanel(id){
   if(id==='dash')renderDash();
   if(id==='prod')renderProd();if(id==='mtz')renderMtz();if(id==='cfg')renderCfg();
   if(id==='proveedores')renderProveedores();if(id==='costos')renderCostos();
+  if(id==='forecast')renderForecast();
+  if(id==='stock')renderStock();
 }
 
 // ── STORAGE ───────────────────────────────────────────────────────
@@ -1059,7 +1061,7 @@ function matRowHtml(r){
         <th class="r">Cons./pr</th><th class="r">Rinde</th><th class="r">Precio</th><th class="r">Cant MP (auto)</th><th class="r">Rinde real</th>
         <th class="r">Q real mts</th><th class="r">Cons.real</th><th class="r">Costo/pr (auto)</th><th class="r">Total a pagar (auto)</th><th style="text-align:center">Comprado</th><th></th></tr></thead>
         <tbody>${mats.map(m=>{
-          const colores=r.colores||[{color:r.color||'',cant:r.cant||0}];
+          const colores=r.colores&&r.colores.length?r.colores:[{color:r.color||'',cant:r.cant||0}];
           const clr=colores[m.colorIdx??0];
           const colorLabel=clr?`${clr.color||'—'} <span style="color:var(--mu)">(${clr.cant||0}u)</span>`:'—';
           return`<tr class="${m.comprado?'row-ingresado':''}">
@@ -1153,7 +1155,7 @@ function updateMatColorInfo(){
   const articleId=parseInt(gV('mat-article-id'));
   const r=(getData()||[]).find(x=>x.id===articleId);if(!r)return;
   const ci=parseInt(gV('mat-coloridx'))||0;
-  const colores=r.colores||[{color:r.color||'',cant:r.cant||0}];
+  const colores=r.colores&&r.colores.length?r.colores:[{color:r.color||'',cant:r.cant||0}];
   const clr=colores[ci];
   const el=document.getElementById('mat-color-qty');
   if(el)el.textContent=clr?`Cantidad a producir en este color: ${clr.cant||0} unidades`:'';
@@ -1177,14 +1179,14 @@ function renderMatColorChecks(colores,checkedIndices){
 function toggleAllMatColors(cb){
   const articleId=parseInt(gV('mat-article-id'));
   const r=(getData()||[]).find(x=>x.id===articleId);if(!r)return;
-  const colores=r.colores||[{color:'',cant:r.cant||0}];
+  const colores=r.colores&&r.colores.length?r.colores:[{color:'',cant:r.cant||0}];
   colores.forEach((_,i)=>{const el=document.getElementById(`mat-col-${i}`);if(el)el.checked=cb.checked;});
   renderMatColorChecks(colores,cb.checked?'all':[]); // re-render to update styles
 }
 function syncAllMatColors(){
   const articleId=parseInt(gV('mat-article-id'));
   const r=(getData()||[]).find(x=>x.id===articleId);if(!r)return;
-  const colores=r.colores||[{color:'',cant:r.cant||0}];
+  const colores=r.colores&&r.colores.length?r.colores:[{color:'',cant:r.cant||0}];
   const sel=colores.map((_,i)=>document.getElementById(`mat-col-${i}`)?.checked?i:null).filter(x=>x!==null);
   const allCb=document.getElementById('mat-col-all');
   if(allCb)allCb.checked=sel.length===colores.length;
@@ -1243,7 +1245,7 @@ function openMatModal(articleId,matId){
   sV('mat-article-id',articleId);sV('mat-id',matId||'');
   document.getElementById('mat-title').textContent=m?'Editar componente':'Agregar componente';
   document.getElementById('mat-info').textContent=`${r.codigo||''} — ${r.nombre} · Q total: ${r.cant||0}`;
-  const colores=r.colores||[{color:r.color||'',cant:r.cant||0}];
+  const colores=r.colores&&r.colores.length?r.colores:[{color:r.color||'',cant:r.cant||0}];
   populateMatLibSelect();
   // Color selector: checkboxes for new, single select for edit
   const checks=document.getElementById('mat-color-checks');
@@ -1275,7 +1277,7 @@ function saveMatModal(){
   const matId=gV('mat-id')?parseInt(gV('mat-id')):null;
   const rows=getData()||[];
   const r=rows.find(x=>x.id===articleId);if(!r)return;
-  const colores=r.colores||[{color:r.color||'',cant:r.cant||0}];
+  const colores=r.colores&&r.colores.length?r.colores:[{color:r.color||'',cant:r.cant||0}];
   const consumo=parseFloat(gV('mat-consumo'))||0;
   const rinde=parseFloat(gV('mat-rinde'))||0;
   const precio=parseFloat(gV('mat-precio'))||0;
@@ -1442,6 +1444,294 @@ function renderCashflow(){
     <tfoot><tr><td colspan="3" class="r mu" style="padding:9px 10px;font-size:9px;letter-spacing:1px;text-transform:uppercase">Total proyectado</td>
     <td class="r" style="padding:9px 10px;color:var(--ac);font-weight:700">${fmtV(keys.reduce((a,k)=>a+byProv[k].total,0))}</td><td colspan="2"></td></tr></tfoot>
   </table></div>`;
+}
+
+// ── FORECAST ─────────────────────────────────────────────────────
+function getFc(){try{return JSON.parse(localStorage.getItem('tw_hub_fc')||'{}');}catch{return{};}}
+function setFc(v){localStorage.setItem('tw_hub_fc',JSON.stringify(v));}
+function getFcArt(id){return getFc()[String(id)]||{};}
+function getFcColor(id,ci){const f=getFc();return f[`${id}_${ci}`]||(ci===0?f[String(id)]:{});}
+function getFcColorData(id,ci){
+  const a=getFcArt(id),c=getFcColor(id,ci);
+  return{curva:a.curva||'',pMay:a.pMay||0,pvp:a.pvp||0,pctColor:a.pctColor||0,
+    qMay:c.qMay||0,qWeb:c.qWeb||0,qVdp:c.qVdp||0,qPalmOff:c.qPalmOff||0,
+    qArmenia:c.qArmenia||0,qLomitas:c.qLomitas||0,qLocN1:c.qLocN1||0};
+}
+function getFcRow(id){return getFcColorData(id,0);}
+function saveFcArtField(id,field,rawVal){
+  const f=getFc();const k=String(id);
+  const isNum=['pMay','pvp','pctColor'].includes(field);
+  f[k]={...f[k]||{},[field]:isNum?(parseFloat(rawVal)||0):rawVal};
+  setFc(f);renderForecastView();
+}
+function saveFcColorField(id,ci,field,rawVal){
+  const f=getFc();const k=`${id}_${ci}`;
+  f[k]={...f[k]||{},[field]:parseFloat(rawVal)||0};
+  setFc(f);
+}
+function saveFcField(id,field,rawVal){
+  const artFields=['curva','pMay','pvp','pctColor'];
+  if(artFields.includes(field))saveFcArtField(id,field,rawVal);
+}
+const FC_CHANNELS=[
+  {key:'qMay',  label:'Mayorista',   price:'pMay',vKey:'vMay',  vLabel:'Val. Mayorista ($)'},
+  {key:'qWeb',  label:'Web',         price:'pvp', vKey:'vWeb',  vLabel:'Val. Web ($)'},
+  {key:'qVdp',  label:'VDP',         price:'pvp', vKey:'vVdp',  vLabel:'Val. VDP ($)'},
+  {key:'qPalmOff',label:'Palermo Off',price:'pvp',vKey:'vPalmOff',vLabel:'Val. Palm.Off ($)'},
+  {key:'qArmenia',label:'Armenia',   price:'pvp', vKey:'vArmenia',vLabel:'Val. Armenia ($)'},
+  {key:'qLomitas',label:'Lomitas',   price:'pvp', vKey:'vLomitas',vLabel:'Val. Lomitas ($)'},
+  {key:'qLocN1',label:'Loc. Nuevo 1',price:'pvp', vKey:'vLocN1',vLabel:'Val. Loc.Nvo1 ($)'},
+];
+let FF={mes:'ALL',linea:'ALL'};
+function calcFcRow(r,ci=0){
+  const d=getFcColorData(r.id,ci);
+  const preCosto=articleCostUnit(r);
+  const pMay=d.pMay||0,pvp=d.pvp||(r.precio||0);
+  const muMay=preCosto&&pMay?(pMay/preCosto-1)*100:null;
+  const muPvp=preCosto&&pvp?(pvp/preCosto-1)*100:null;
+  const muMtP=pMay&&pvp?(pvp/pMay-1)*100:null;
+  const qtys=FC_CHANNELS.reduce((a,c)=>{a[c.key]=d[c.key]||0;return a;},{});
+  const total=FC_CHANNELS.reduce((s,c)=>s+(qtys[c.key]||0),0);
+  const vals={};FC_CHANNELS.forEach(c=>{vals[c.vKey]=(c.price==='pMay'?pMay:pvp)*(qtys[c.key]||0);});
+  const valTotal=FC_CHANNELS.reduce((s,c)=>s+(vals[c.vKey]||0),0);
+  const preCostoTotal=preCosto*total;
+  return{preCosto,pMay,pvp,muMay,muPvp,muMtP,curva:d.curva,pctColor:d.pctColor,...qtys,...vals,total,valTotal,preCostoTotal};
+}
+function renderForecast(){
+  const rows=getData()||[];
+  const meses=uniq(rows.map(r=>r.mes)),lineas=uniq(rows.map(r=>r.linea));
+  document.getElementById('fc-filters').innerHTML=`
+    <select class="flt" onchange="FF.mes=this.value;renderForecastView()"><option value="ALL">Todos los meses</option>${meses.map(m=>`<option>${m}</option>`).join('')}</select>
+    <select class="flt" onchange="FF.linea=this.value;renderForecastView()"><option value="ALL">Todas las líneas</option>${lineas.map(l=>`<option>${l}</option>`).join('')}</select>`;
+  renderForecastView();
+}
+function muFmt(v){
+  if(v==null)return'<span class="mu">—</span>';
+  const c=v<0?'var(--rd)':v<30?'var(--or)':'var(--gn)';
+  return`<span style="color:${c};font-weight:500">${v.toFixed(0)}%</span>`;
+}
+function renderForecastView(){
+  const rows=(getData()||[]).filter(r=>(FF.mes==='ALL'||r.mes===FF.mes)&&(FF.linea==='ALL'||r.linea===FF.linea));
+  const totalVariants=rows.reduce((s,r)=>s+(r.colores&&r.colores.length?r.colores.length:1),0);
+  document.getElementById('fc-count').textContent=`${rows.length} artículo${rows.length!==1?'s':''}${totalVariants>rows.length?` · ${totalVariants} variantes de color`:''}`;
+  const el=document.getElementById('fc-view');
+  if(!rows.length){el.innerHTML='<div class="empty">🔍 Sin artículos — creá artículos en la Matriz para verlos acá</div>';return;}
+  // expand articles × colors
+  const calcs=[];
+  rows.forEach(r=>{
+    const colores=(r.colores&&r.colores.length)?r.colores:[{color:r.color||'',cant:r.cant||0}];
+    colores.forEach((clr,ci)=>calcs.push({r,clr,ci,c:calcFcRow(r,ci)}));
+  });
+  const fTotal=calcs.reduce((s,x)=>s+x.c.total,0);
+  const fValTotal=calcs.reduce((s,x)=>s+x.c.valTotal,0);
+  const fPreCTotal=calcs.reduce((s,x)=>s+x.c.preCostoTotal,0);
+  const fChanTotals={};
+  FC_CHANNELS.forEach(c=>{
+    fChanTotals[c.key]=calcs.reduce((s,x)=>s+(x.c[c.key]||0),0);
+    fChanTotals[c.vKey]=calcs.reduce((s,x)=>s+(x.c[c.vKey]||0),0);
+  });
+  // column widths: 4 fixed + 3 prices + 3 MU + %col + 7 qty + total + 7 val + valTotal + preCostoTotal
+  el.innerHTML=`<div class="tbl-scroll"><table style="min-width:2100px;font-size:9px">
+    <colgroup>
+      <col style="min-width:70px"><col style="min-width:160px"><col style="min-width:80px"><col style="min-width:70px">
+      <col style="min-width:72px"><col style="min-width:72px"><col style="min-width:72px">
+      <col style="min-width:60px"><col style="min-width:60px"><col style="min-width:60px">
+      <col style="min-width:58px">
+      ${FC_CHANNELS.map(()=>'<col style="min-width:68px">').join('')}
+      <col style="min-width:58px">
+      ${FC_CHANNELS.map(()=>'<col style="min-width:88px">').join('')}
+      <col style="min-width:90px"><col style="min-width:100px">
+    </colgroup>
+    <thead>
+      <tr>
+        <th colspan="4" style="text-align:left">ARTÍCULO</th>
+        <th colspan="3" style="text-align:center;background:rgba(124,58,237,.07)">PRECIOS</th>
+        <th colspan="3" style="text-align:center;background:rgba(217,119,6,.07)">MARK-UPS</th>
+        <th style="background:rgba(37,99,235,.07);text-align:center">%COL</th>
+        <th colspan="${FC_CHANNELS.length}" style="text-align:center;background:rgba(37,99,235,.07)" class="fc-grp">CANTIDADES POR CANAL</th>
+        <th style="background:rgba(37,99,235,.09)">TOTAL</th>
+        <th colspan="${FC_CHANNELS.length}" style="text-align:center;background:rgba(22,163,74,.07)" class="fc-grp2">VALORIZADO POR CANAL ($)</th>
+        <th style="background:rgba(22,163,74,.09)">VAL. TOTAL</th>
+        <th style="background:rgba(217,119,6,.07)">PRE COSTO TOTAL</th>
+      </tr>
+      <tr>
+        <th>TIPOLOGÍA</th><th>ARTÍCULO</th><th>COLOR</th><th>CURVA</th>
+        <th style="background:rgba(124,58,237,.05)">PRE COSTO</th>
+        <th style="background:rgba(124,58,237,.05)">P. MAYORISTA</th>
+        <th style="background:rgba(124,58,237,.05)">PVP</th>
+        <th style="background:rgba(217,119,6,.05)">MU MAY</th>
+        <th style="background:rgba(217,119,6,.05)">MU PVP</th>
+        <th style="background:rgba(217,119,6,.05)">MU M→P</th>
+        <th style="background:rgba(37,99,235,.05)">% COLOR</th>
+        ${FC_CHANNELS.map(c=>`<th class="fc-grp r">${c.label}</th>`).join('')}
+        <th class="r" style="background:rgba(37,99,235,.09)">TOTAL</th>
+        ${FC_CHANNELS.map(c=>`<th class="fc-grp2 r">${c.vLabel}</th>`).join('')}
+        <th class="r" style="background:rgba(22,163,74,.09)">VAL. TOTAL ($)</th>
+        <th class="r" style="background:rgba(217,119,6,.05)">PRE COSTO TOTAL ($)</th>
+      </tr>
+    </thead>
+    <tbody>${calcs.map(({r,clr,ci,c})=>{
+      const isFirst=ci===0;
+      const rowBg=!isFirst?'background:rgba(0,0,0,.018)':'';
+      return`<tr style="${rowBg}">
+        <td>${isFirst?lineaBadge(r.linea):''}</td>
+        <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;${isFirst?'font-weight:500':'color:var(--mu);font-size:9px;padding-left:18px'}" title="${r.nombre}">${isFirst?r.nombre:`↳ ${r.nombre}`}</td>
+        <td class="mu">${clr.color||''}</td>
+        <td>${isFirst?`<input class="fc-inp fc-txt" value="${c.curva}" placeholder="ej: 1-2-2-1" onchange="saveFcField(${r.id},'curva',this.value)">`:''}</td>
+        <td class="r" style="color:var(--or)">${isFirst&&c.preCosto?fmtV(c.preCosto):(!isFirst&&c.preCosto?'<span class="mu">'+fmtV(c.preCosto)+'</span>':'')}</td>
+        <td>${isFirst?`<input class="fc-inp" type="number" value="${c.pMay||''}" placeholder="0" onchange="saveFcField(${r.id},'pMay',this.value)">`:''}</td>
+        <td>${isFirst?`<input class="fc-inp" type="number" value="${c.pvp||''}" placeholder="${r.precio||0}" onchange="saveFcField(${r.id},'pvp',this.value)">`:''}</td>
+        <td style="text-align:center">${isFirst?muFmt(c.muMay):''}</td>
+        <td style="text-align:center">${isFirst?muFmt(c.muPvp):''}</td>
+        <td style="text-align:center">${isFirst?muFmt(c.muMtP):''}</td>
+        <td>${isFirst?`<input class="fc-inp" type="number" min="0" max="100" step="0.1" value="${c.pctColor||''}" placeholder="0" onchange="saveFcField(${r.id},'pctColor',this.value)">`:''}</td>
+        ${FC_CHANNELS.map(ch=>`<td class="fc-grp"><input class="fc-inp" type="number" min="0" value="${c[ch.key]||''}" placeholder="0" onchange="saveFcColorField(${r.id},${ci},'${ch.key}',this.value);renderForecastView()"></td>`).join('')}
+        <td class="r" style="font-weight:600;background:rgba(37,99,235,.08)">${c.total||''}</td>
+        ${FC_CHANNELS.map(ch=>`<td class="fc-grp2 r" style="color:var(--gn)">${c[ch.vKey]?fmtV(c[ch.vKey]):''}</td>`).join('')}
+        <td class="r" style="font-weight:600;color:var(--gn);background:rgba(22,163,74,.08)">${c.valTotal?fmtV(c.valTotal):''}</td>
+        <td class="r" style="color:var(--or)">${c.preCostoTotal?fmtV(c.preCostoTotal):''}</td>
+      </tr>`;
+    }).join('')}</tbody>
+    <tfoot class="fc-tfoot"><tr>
+      <td colspan="11" class="r" style="letter-spacing:.8px;text-transform:uppercase;font-size:8px;color:var(--mu)">TOTALES</td>
+      ${FC_CHANNELS.map(c=>`<td class="r">${fChanTotals[c.key]||''}</td>`).join('')}
+      <td class="r" style="background:rgba(37,99,235,.12);font-weight:700">${fTotal||''}</td>
+      ${FC_CHANNELS.map(c=>`<td class="r" style="color:var(--gn)">${fChanTotals[c.vKey]?fmtV(fChanTotals[c.vKey]):''}</td>`).join('')}
+      <td class="r" style="color:var(--gn);font-weight:700">${fValTotal?fmtV(fValTotal):''}</td>
+      <td class="r" style="color:var(--or);font-weight:700">${fPreCTotal?fmtV(fPreCTotal):''}</td>
+    </tr></tfoot>
+  </table></div>`;
+}
+
+// ── DIVISIÓN DE STOCK ─────────────────────────────────────────────
+const CH_COLORS={
+  Mayorista:'#2563eb',Web:'#7c3aed',VDP:'#0d9488',
+  'Palermo Off':'#db2777',Armenia:'#d97706',Lomitas:'#16a34a','Loc. Nuevo 1':'#9333ea'
+};
+let SF={mes:'ALL'};
+function renderStock(){
+  const rows=getData()||[];
+  const meses=uniq(rows.map(r=>r.mes));
+  document.getElementById('stock-filters').innerHTML=`
+    <select class="flt" onchange="SF.mes=this.value;renderStockView()"><option value="ALL">Todos los meses</option>${meses.map(m=>`<option>${m}</option>`).join('')}</select>`;
+  renderStockView();
+}
+function renderStockView(){
+  const rows=(getData()||[]).filter(r=>SF.mes==='ALL'||r.mes===SF.mes);
+  const el=document.getElementById('stock-view');
+  const groups={};
+  rows.forEach(r=>{const m=r.mes||'SIN MES';if(!groups[m])groups[m]=[];groups[m].push(r);});
+  const mesesOrden=Object.keys(groups);
+  const totalArticulos=rows.length;
+  document.getElementById('stock-count').textContent=`${totalArticulos} artículo${totalArticulos!==1?'s':''} · nutridos del Forecast`;
+  if(!rows.length){el.innerHTML='<div class="empty">📦 Creá artículos en Matriz y completá cantidades en el Forecast para ver la división acá</div>';return;}
+  const channels=FC_CHANNELS.map(c=>({key:c.key,label:c.label}));
+  el.innerHTML=mesesOrden.map(mes=>{
+    const arts=groups[mes];
+    const mesTotal=arts.reduce((s,r)=>{
+      const cls=(r.colores&&r.colores.length)?r.colores:[{color:'',cant:r.cant||0}];
+      return s+channels.reduce((a,c)=>a+cls.reduce((t,_,ci)=>t+(getFcColor(r.id,ci)[c.key]||0),0),0);
+    },0);
+    const rowsHtml=arts.map(r=>{
+      const colores=(r.colores&&r.colores.length)?r.colores:[{color:r.color||'',cant:r.cant||0}];
+      const cant=r.cant||0;
+      const qtys=channels.map(c=>{
+        const qty=colores.reduce((s,_,ci)=>s+(getFcColor(r.id,ci)[c.key]||0),0);
+        return{...c,qty};
+      });
+      const fcTotal=qtys.reduce((s,c)=>s+c.qty,0);
+      const gap=cant-fcTotal;
+      const hasFc=fcTotal>0;
+      return`<tr>
+        <td>${lineaBadge(r.linea)}</td>
+        <td style="font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${r.nombre}">${r.nombre}</td>
+        <td class="mu" style="font-size:8px">${colores.map(c=>`<span class="color-chip">${c.color||'—'} <b>${c.cant}</b></span>`).join(' ')}</td>
+        <td class="r" style="font-weight:600">${fmtN(cant)}</td>
+        ${qtys.map(c=>`<td class="r">${c.qty?`<div class="stock-chip" style="background:${CH_COLORS[c.label]||'#9a8f87'}18;color:${CH_COLORS[c.label]||'#9a8f87'}"><span class="sc-dot" style="background:${CH_COLORS[c.label]||'#9a8f87'}"></span>${c.qty}</div>`:'<span class="mu">—</span>'}</td>`).join('')}
+        <td class="r" style="font-weight:600;color:var(--ac)">${hasFc?fmtN(fcTotal):'<span class="stock-pending">sin planif.</span>'}</td>
+        <td class="r">${!hasFc?'<span class="stock-pending">pendiente</span>':gap===0?`<span class="stock-gap-ok">✓ Cuadra</span>`:gap>0?`<span class="stock-gap-under">−${fmtN(gap)} sin asignar</span>`:`<span class="stock-gap-over">+${fmtN(Math.abs(gap))} excede</span>`}</td>
+        <td style="min-width:110px">${hasFc?`<div class="stock-bar">${qtys.filter(c=>c.qty>0).map(c=>`<div class="stock-bar-seg" title="${c.label}: ${c.qty}" style="background:${CH_COLORS[c.label]||'#9a8f87'};width:${(c.qty/fcTotal*100).toFixed(1)}%"></div>`).join('')}</div>`:''}</td>
+      </tr>`;
+    }).join('');
+    return`<div style="margin-bottom:28px">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 20px;background:var(--sf3);border:1px solid var(--bd);border-radius:10px 10px 0 0">
+        <span style="font-size:11px;font-weight:600;letter-spacing:.5px">${mes}</span>
+        <span class="mu" style="font-size:9px">${arts.length} artículo${arts.length!==1?'s':''}</span>
+        <span style="font-size:9px;color:var(--ac);font-weight:500;margin-left:auto">${mesTotal?fmtN(mesTotal)+' unidades planificadas':''}</span>
+      </div>
+      <div class="tbl-scroll"><table style="min-width:1000px">
+        <thead><tr>
+          <th>Línea</th><th>Artículo</th><th>Colores</th><th class="r">Producción</th>
+          ${channels.map(c=>`<th class="r"><span class="sc-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${CH_COLORS[c.label]||'#9a8f87'};margin-right:4px"></span>${c.label}</th>`).join('')}
+          <th class="r">Total Fcst</th><th>Estado</th><th style="min-width:110px">Distribución</th>
+        </tr></thead>
+        <tbody>${rowsHtml}</tbody>
+        <tfoot><tr>
+          <td colspan="4" class="r mu" style="padding:7px 9px;font-size:8px;letter-spacing:.8px;text-transform:uppercase;background:var(--sf2)">Totales ${mes}</td>
+          ${channels.map(c=>{const t=arts.reduce((s,r)=>{const cls=(r.colores&&r.colores.length)?r.colores:[{color:'',cant:0}];return s+cls.reduce((a,_,ci)=>a+(getFcColor(r.id,ci)[c.key]||0),0);},0);return`<td class="r" style="padding:7px 9px;font-weight:600;background:var(--sf2);color:${CH_COLORS[c.label]||'#9a8f87'}">${t||''}</td>`;}).join('')}
+          <td class="r" style="padding:7px 9px;font-weight:700;color:var(--ac);background:var(--sf2)">${fmtN(mesTotal)}</td>
+          <td colspan="2" style="background:var(--sf2)"></td>
+        </tr></tfoot>
+      </table></div>
+    </div>`;
+  }).join('')+`<div style="padding:14px 20px;border:1px solid var(--bd);border-radius:10px;background:var(--sf2)">
+    <div style="font-size:9px;color:var(--mu);line-height:1.9">
+      💡 <b style="color:var(--tx)">Leyenda</b> &nbsp;·&nbsp;
+      <span class="stock-gap-ok">✓ Cuadra</span> — todas las unidades asignadas &nbsp;·&nbsp;
+      <span class="stock-gap-under">−N sin asignar</span> — faltan distribuir N unidades &nbsp;·&nbsp;
+      <span class="stock-gap-over">+N excede</span> — se distribuyeron más de las que entran &nbsp;·&nbsp;
+      <span class="stock-pending">sin planif.</span> — sin cantidades en Forecast
+    </div>
+  </div>`;
+}
+
+// ── EDICIÓN RÁPIDA DE CANTIDADES (desde Matriz) ───────────────────
+function openQEdit(articleId){
+  const r=(getData()||[]).find(x=>x.id===articleId);if(!r)return;
+  const colores=(r.colores&&r.colores.length)?r.colores:[{color:r.color||'',cant:r.cant||0}];
+  document.getElementById('qe-title').textContent=`${r.nombre} — Cantidades por canal`;
+  const body=document.getElementById('qe-body');
+  body.innerHTML=`
+  <div style="font-size:9px;color:var(--mu);margin-bottom:12px">
+    ${lineaBadge(r.linea)} <b style="margin-left:4px">${r.mes||''}</b>
+    ${r.ingAcord?` · Ingreso: <b style="color:var(--ac)">${r.ingAcord}</b>`:''}
+    · Q total producción: <b>${fmtN(r.cant||0)}</b>
+  </div>
+  <div class="tbl-scroll"><table class="mtz-mat-tbl" style="min-width:620px">
+    <thead><tr><th>Color</th><th class="r">Q prod.</th>
+      ${FC_CHANNELS.map(c=>`<th class="r"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${CH_COLORS[c.label]||'#9a8f87'};margin-right:4px"></span>${c.label}</th>`).join('')}
+      <th class="r">Total</th><th class="r">Gap</th>
+    </tr></thead>
+    <tbody>${colores.map((clr,ci)=>{
+      const d=getFcColorData(articleId,ci);
+      const qtys=FC_CHANNELS.map(ch=>d[ch.key]||0);
+      const fcTotal=qtys.reduce((s,v)=>s+v,0);
+      const gap=clr.cant-fcTotal;
+      return`<tr>
+        <td style="font-weight:500">${clr.color||'(sin color)'}</td>
+        <td class="r mu">${clr.cant||0}</td>
+        ${FC_CHANNELS.map((ch,i)=>`<td class="r">
+          <input class="fc-inp" type="number" min="0" value="${qtys[i]||''}" placeholder="0"
+                 onchange="saveFcColorField(${articleId},${ci},'${ch.key}',this.value);refreshQEditRow(this,${articleId},${ci})"
+                 style="width:58px">
+        </td>`).join('')}
+        <td class="r" style="font-weight:600;color:var(--ac)" id="qe-tot-${ci}">${fcTotal||0}</td>
+        <td class="r" id="qe-gap-${ci}">${gap===0?'<span class="stock-gap-ok">✓</span>':gap>0?`<span class="stock-gap-under">−${fmtN(gap)}</span>`:`<span class="stock-gap-over">+${fmtN(Math.abs(gap))}</span>`}</td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table></div>`;
+  document.getElementById('modal-qedit').classList.add('open');
+}
+function refreshQEditRow(input,articleId,ci){
+  const r=(getData()||[]).find(x=>x.id===articleId);if(!r)return;
+  const colores=(r.colores&&r.colores.length)?r.colores:[{color:'',cant:r.cant||0}];
+  const d=getFcColorData(articleId,ci);
+  const fcTotal=FC_CHANNELS.reduce((s,ch)=>s+(d[ch.key]||0),0);
+  const gap=(colores[ci]?.cant||0)-fcTotal;
+  const totEl=document.getElementById(`qe-tot-${ci}`);if(totEl)totEl.textContent=fcTotal||0;
+  const gapEl=document.getElementById(`qe-gap-${ci}`);
+  if(gapEl)gapEl.innerHTML=gap===0?'<span class="stock-gap-ok">✓</span>':gap>0?`<span class="stock-gap-under">−${fmtN(gap)}</span>`:`<span class="stock-gap-over">+${fmtN(Math.abs(gap))}</span>`;
 }
 
 // ── CONFIG ────────────────────────────────────────────────────────
