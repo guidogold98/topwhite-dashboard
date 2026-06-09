@@ -509,12 +509,27 @@ tbody td.mu{color:var(--mu);font-size:9px}
     <div class="modal-body">
       <input type="hidden" id="mat-article-id"><input type="hidden" id="mat-id">
       <div style="margin-bottom:14px;padding:10px 12px;background:var(--sf2);border-radius:8px;font-size:11px;color:var(--mu)" id="mat-info"></div>
-      <div class="fgrid">
-        <div class="field full">
-          <label>Color del artículo al que aplica *</label>
-          <select id="mat-coloridx" onchange="calcMatTotal();updateMatColorInfo()"></select>
-          <div id="mat-color-qty" style="font-size:9px;color:var(--ac);margin-top:3px"></div>
+
+      <!-- Biblioteca de materiales -->
+      <div style="margin-bottom:14px;padding:12px 14px;background:rgba(181,137,42,.06);border:1px solid rgba(181,137,42,.2);border-radius:9px">
+        <div style="font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:var(--ac);margin-bottom:8px;font-weight:600">📚 Biblioteca de materiales</div>
+        <select id="mat-lib-sel" onchange="loadFromMatLib(this.value)" style="width:100%;background:#fff;border:1px solid var(--bd);color:var(--tx);border-radius:7px;padding:7px 10px;font-family:'DM Sans',sans-serif;font-size:11px;outline:none">
+          <option value="">— cargar un material guardado —</option>
+        </select>
+        <div style="font-size:9px;color:var(--mu);margin-top:5px">Los materiales se guardan automáticamente al agregar un componente.</div>
+      </div>
+
+      <!-- Selector de colores (modo nuevo: checkboxes / modo edición: select) -->
+      <div class="fgrid" style="margin-bottom:12px">
+        <div class="field full" id="mat-color-wrap">
+          <label id="mat-color-label">Colores a los que aplica *</label>
+          <div id="mat-color-checks" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"></div>
+          <select id="mat-coloridx" style="display:none" onchange="calcMatTotal();updateMatColorInfo()"></select>
+          <div id="mat-color-qty" style="font-size:9px;color:var(--ac);margin-top:4px"></div>
         </div>
+      </div>
+
+      <div class="fgrid">
         <div class="field"><label>Tipo</label>
           <select id="mat-tipo"><option>TELA</option><option>ETIQUETA</option><option>AVÍO</option><option>PACKAGING</option><option>HANGTAG</option><option>BOLSA</option><option>OTRO</option></select></div>
         <div class="field"><label>Cod TW</label><input id="mat-codtw" placeholder="TMPALT"></div>
@@ -1101,8 +1116,39 @@ function renderMtzView(){
   </table></div>`;
 }
 
+// ── BIBLIOTECA DE MATERIALES ──────────────────────────────────────
+function getMatLib(){try{return JSON.parse(localStorage.getItem('tw_hub_matlib')||'[]');}catch{return[];}}
+function setMatLib(v){localStorage.setItem('tw_hub_matlib',JSON.stringify(v));}
+function saveToMatLib(item){
+  if(!item.materia&&!item.codtw)return;
+  const lib=getMatLib();
+  const key=(item.materia||item.codtw||'').toLowerCase().trim();
+  const idx=lib.findIndex(x=>((x.materia||x.codtw||'').toLowerCase().trim())===key);
+  const entry={tipo:item.tipo,codtw:item.codtw,materia:item.materia,prov:item.prov,colorprov:item.colorprov,
+    consumo:item.consumo,rinde:item.rinde,precio:item.precio};
+  if(idx>=0)lib[idx]=entry;else lib.push(entry);
+  setMatLib(lib);
+}
+function populateMatLibSelect(){
+  const lib=getMatLib();
+  const sel=document.getElementById('mat-lib-sel');if(!sel)return;
+  sel.innerHTML='<option value="">— cargar un material guardado —</option>'+
+    lib.map((m,i)=>`<option value="${i}">${m.materia||m.codtw||'?'}${m.prov?' · '+m.prov:''}${m.precio?' · $'+m.precio:''}</option>`).join('');
+}
+function loadFromMatLib(idx){
+  if(idx==='')return;
+  const m=getMatLib()[parseInt(idx)];if(!m)return;
+  sV('mat-tipo',m.tipo||'TELA');sV('mat-codtw',m.codtw||'');sV('mat-materia',m.materia||'');
+  sV('mat-prov',m.prov||'');sV('mat-colorprov',m.colorprov||'');
+  sV('mat-consumo',m.consumo||'');sV('mat-rinde',m.rinde||'');sV('mat-precio',m.precio||'');
+  sV('mat-rindereal','');sV('mat-qrealmts','');sV('mat-consumoreal','');
+  calcMatTotal();
+  document.getElementById('mat-lib-sel').value='';
+}
+
 // ── COMPONENTES / MATERIA PRIMA (por artículo) ───────────────────
 function updateMatColorInfo(){
+  // used in edit mode (single select shown)
   const articleId=parseInt(gV('mat-article-id'));
   const r=(getData()||[]).find(x=>x.id===articleId);if(!r)return;
   const ci=parseInt(gV('mat-coloridx'))||0;
@@ -1111,11 +1157,51 @@ function updateMatColorInfo(){
   const el=document.getElementById('mat-color-qty');
   if(el)el.textContent=clr?`Cantidad a producir en este color: ${clr.cant||0} unidades`:'';
 }
+function renderMatColorChecks(colores,checkedIndices){
+  const el=document.getElementById('mat-color-checks');if(!el)return;
+  const chkStyle='display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border:1px solid var(--bd);border-radius:7px;cursor:pointer;font-size:10px;background:var(--sf2);user-select:none';
+  const allChecked=checkedIndices==='all'||checkedIndices?.length===colores.length;
+  el.innerHTML=`
+    <label style="${chkStyle}${allChecked?';border-color:var(--ac);background:rgba(181,137,42,.08);color:var(--ac)':''}">
+      <input type="checkbox" id="mat-col-all" onchange="toggleAllMatColors(this)" ${allChecked?'checked':''}> TODAS LAS VARIANTES
+    </label>
+    ${colores.map((c,i)=>{
+      const checked=allChecked||(Array.isArray(checkedIndices)&&checkedIndices.includes(i));
+      return`<label style="${chkStyle}${checked?';border-color:var(--ac);background:rgba(181,137,42,.08)':''}">
+        <input type="checkbox" id="mat-col-${i}" value="${i}" onchange="syncAllMatColors()" ${checked?'checked':''}>
+        ${c.color||'(sin color)'} <span style="color:var(--mu)">(${c.cant||0}u)</span>
+      </label>`;
+    }).join('')}`;
+}
+function toggleAllMatColors(cb){
+  const articleId=parseInt(gV('mat-article-id'));
+  const r=(getData()||[]).find(x=>x.id===articleId);if(!r)return;
+  const colores=r.colores||[{color:'',cant:r.cant||0}];
+  colores.forEach((_,i)=>{const el=document.getElementById(`mat-col-${i}`);if(el)el.checked=cb.checked;});
+  renderMatColorChecks(colores,cb.checked?'all':[]); // re-render to update styles
+}
+function syncAllMatColors(){
+  const articleId=parseInt(gV('mat-article-id'));
+  const r=(getData()||[]).find(x=>x.id===articleId);if(!r)return;
+  const colores=r.colores||[{color:'',cant:r.cant||0}];
+  const sel=colores.map((_,i)=>document.getElementById(`mat-col-${i}`)?.checked?i:null).filter(x=>x!==null);
+  const allCb=document.getElementById('mat-col-all');
+  if(allCb)allCb.checked=sel.length===colores.length;
+  renderMatColorChecks(colores,sel.length===colores.length?'all':sel);
+}
+function getSelectedColorIndices(colores){
+  if(document.getElementById('mat-col-all')?.checked)return colores.map((_,i)=>i);
+  return colores.map((_,i)=>i).filter(i=>document.getElementById(`mat-col-${i}`)?.checked);
+}
 function calcMatTotal(){
+  // in new mode, use first checked color for preview; in edit mode use select
   const articleId=parseInt(gV('mat-article-id'));
   const r=(getData()||[]).find(x=>x.id===articleId);
-  const ci=parseInt(gV('mat-coloridx'))||0;
   const colores=r?.colores||[{color:r?.color||'',cant:r?.cant||0}];
+  const matId=gV('mat-id');
+  let ci=0;
+  if(matId){ci=parseInt(gV('mat-coloridx'))||0;}
+  else{const sel=getSelectedColorIndices(colores);ci=sel.length?sel[0]:0;}
   const cantArt=colores[ci]?.cant||0;
   const consumo=parseFloat(gV('mat-consumo'))||0;
   const rinde=parseFloat(gV('mat-rinde'))||0;
@@ -1127,6 +1213,14 @@ function calcMatTotal(){
   sV('mat-cantmp',cantmp?+cantmp.toFixed(2):'');
   sV('mat-costo',costo?+costo.toFixed(2):'');
   sV('mat-total',total?Math.round(total):'');
+  // hint in qty field
+  const el=document.getElementById('mat-color-qty');
+  if(el&&!matId){
+    const sels=getSelectedColorIndices(colores);
+    if(sels.length>1)el.textContent=`Se crearán ${sels.length} filas, una por cada color seleccionado`;
+    else if(sels.length===1)el.textContent=`Cantidad del color: ${colores[sels[0]]?.cant||0} unidades`;
+    else el.textContent='';
+  }
 }
 function syncCompraFromMats(article){
   const mats=article.materiales||[];
@@ -1148,18 +1242,31 @@ function openMatModal(articleId,matId){
   sV('mat-article-id',articleId);sV('mat-id',matId||'');
   document.getElementById('mat-title').textContent=m?'Editar componente':'Agregar componente';
   document.getElementById('mat-info').textContent=`${r.codigo||''} — ${r.nombre} · Q total: ${r.cant||0}`;
-  // populate color select
   const colores=r.colores||[{color:r.color||'',cant:r.cant||0}];
+  populateMatLibSelect();
+  // Color selector: checkboxes for new, single select for edit
+  const checks=document.getElementById('mat-color-checks');
   const sel=document.getElementById('mat-coloridx');
-  sel.innerHTML=colores.map((c,i)=>`<option value="${i}">${c.color||'(sin color)'} — ${c.cant||0} unid.</option>`).join('');
-  const savedCi=m?.colorIdx??0;
-  sel.value=savedCi<colores.length?savedCi:0;
-  updateMatColorInfo();
+  const lbl=document.getElementById('mat-color-label');
+  if(m){
+    // edit mode: show single select
+    checks.style.display='none';sel.style.display='';
+    lbl.textContent='Color del artículo';
+    sel.innerHTML=colores.map((c,i)=>`<option value="${i}">${c.color||'(sin color)'} — ${c.cant||0} unid.</option>`).join('');
+    const savedCi=m.colorIdx??0;sel.value=savedCi<colores.length?savedCi:0;
+    updateMatColorInfo();
+  }else{
+    // new mode: show checkboxes
+    checks.style.display='';sel.style.display='none';
+    lbl.textContent='Colores a los que aplica *';
+    renderMatColorChecks(colores,colores.length===1?[0]:[]);
+  }
   sV('mat-tipo',m?.tipo||'TELA');sV('mat-codtw',m?.codtw||'');sV('mat-materia',m?.materia||'');
   sV('mat-prov',m?.prov||'');sV('mat-colorprov',m?.colorprov||'');
   sV('mat-consumo',m?.consumo||'');sV('mat-rinde',m?.rinde||'');sV('mat-precio',m?.precio||'');
   sV('mat-rindereal',m?.rindereal||'');sV('mat-qrealmts',m?.qrealmts||'');sV('mat-consumoreal',m?.consumoreal||'');
   sV('mat-cantmp',m?.cantmp||'');sV('mat-costo',m?.costo||'');sV('mat-total',m?.total||'');
+  document.getElementById('mat-color-qty').textContent='';
   document.getElementById('modal-mat').classList.add('open');
 }
 function saveMatModal(){
@@ -1167,29 +1274,43 @@ function saveMatModal(){
   const matId=gV('mat-id')?parseInt(gV('mat-id')):null;
   const rows=getData()||[];
   const r=rows.find(x=>x.id===articleId);if(!r)return;
-  const colorIdx=parseInt(gV('mat-coloridx'))||0;
   const colores=r.colores||[{color:r.color||'',cant:r.cant||0}];
-  const cantArt=colores[colorIdx]?.cant||0;
   const consumo=parseFloat(gV('mat-consumo'))||0;
   const rinde=parseFloat(gV('mat-rinde'))||0;
   const precio=parseFloat(gV('mat-precio'))||0;
   const consxrinde=rinde?(consumo/rinde):0;
-  const cantmp=+(cantArt*consxrinde).toFixed(2);
-  const costo=+(consxrinde*precio).toFixed(2);
-  const total=Math.round(cantmp*precio);
-  const mats=r.materiales||[];
-  const orig=matId?mats.find(m=>m.id===matId):null;
-  const item={
-    id:matId||nextMatId(r),colorIdx,tipo:gV('mat-tipo'),codtw:gV('mat-codtw'),materia:gV('mat-materia'),
+  const baseItem={tipo:gV('mat-tipo'),codtw:gV('mat-codtw'),materia:gV('mat-materia'),
     prov:gV('mat-prov'),colorprov:gV('mat-colorprov'),
-    consumo,rinde,precio,cantmp,
+    consumo,rinde,precio,
     rindereal:parseFloat(gV('mat-rindereal'))||0,qrealmts:parseFloat(gV('mat-qrealmts'))||0,
-    consumoreal:parseFloat(gV('mat-consumoreal'))||0,costo,total,
-    comprado:orig?.comprado||false,
-  };
-  const newMats=matId?mats.map(m=>m.id===matId?item:m):[...mats,item];
-  const newRows=rows.map(x=>x.id!==articleId?x:syncCompraFromMats({...x,materiales:newMats}));
-  setData(newRows);closeModal('modal-mat');MTZ_OPEN.add(articleId);renderMtzView();toast(matId?'Componente actualizado ✓':'Componente agregado ✓');
+    consumoreal:parseFloat(gV('mat-consumoreal'))||0};
+  // save to library
+  saveToMatLib(baseItem);
+  let mats=r.materiales?[...r.materiales]:[];
+  if(matId){
+    // edit: update single item
+    const colorIdx=parseInt(gV('mat-coloridx'))||0;
+    const cantArt=colores[colorIdx]?.cant||0;
+    const cantmp=+(cantArt*consxrinde).toFixed(2);
+    const costo=+(consxrinde*precio).toFixed(2);
+    const orig=mats.find(m=>m.id===matId);
+    mats=mats.map(m=>m.id!==matId?m:{...baseItem,id:matId,colorIdx,cantmp,costo,total:Math.round(cantmp*precio),comprado:orig?.comprado||false});
+  }else{
+    // new: create one item per selected color
+    const selectedCIs=getSelectedColorIndices(colores);
+    if(!selectedCIs.length){toast('Seleccioná al menos un color','var(--rd)');return;}
+    // compute next id starting point
+    let nid=(mats.length?Math.max(...mats.map(m=>m.id||0)):0)+1;
+    selectedCIs.forEach(ci=>{
+      const cantArt=colores[ci]?.cant||0;
+      const cantmp=+(cantArt*consxrinde).toFixed(2);
+      const costo=+(consxrinde*precio).toFixed(2);
+      mats.push({...baseItem,id:nid++,colorIdx:ci,cantmp,costo,total:Math.round(cantmp*precio),comprado:false});
+    });
+  }
+  const newRows=rows.map(x=>x.id!==articleId?x:syncCompraFromMats({...x,materiales:mats}));
+  setData(newRows);closeModal('modal-mat');MTZ_OPEN.add(articleId);renderMtzView();
+  toast(matId?'Componente actualizado ✓':'Componente(s) agregado(s) ✓');
 }
 function delMat(articleId,matId){
   if(!confirm('¿Eliminar este componente?'))return;
