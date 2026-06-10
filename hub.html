@@ -379,8 +379,14 @@ tbody td.mu{color:var(--mu);font-size:9px}
     <!-- FORECAST -->
     <div class="panel" id="panel-forecast">
       <div class="panel-title">Forecast</div>
-      <div class="panel-sub">Vista comercial · fechas de ingreso, costos, precios y mark-ups</div>
-      <div class="ph"><div class="ph-icon">📈</div><div class="ph-txt">Próximamente</div><div class="ph-sub">Estamos definiendo el formato de referencia para esta sección. Cuando lo tengamos, acá vas a ver automáticamente todos los artículos de la Matriz agrupados por mes de ingreso, con su costo total (suma de componentes), precio de venta y mark-up.</div></div>
+      <div class="panel-sub">Vista comercial · cantidades por canal, precios y mark-ups</div>
+      <div class="tbl-wrap">
+        <div class="tbl-head">
+          <div class="tbl-title" id="fc-count">—</div>
+        </div>
+        <div class="filters" id="fc-filters"></div>
+        <div id="fc-view"></div>
+      </div>
     </div>
 
     <!-- CORTES -->
@@ -393,8 +399,14 @@ tbody td.mu{color:var(--mu);font-size:9px}
     <!-- STOCK -->
     <div class="panel" id="panel-stock">
       <div class="panel-title">División de Stock</div>
-      <div class="panel-sub">Distribución automática por sucursal</div>
-      <div class="ph"><div class="ph-icon">📦</div><div class="ph-txt">En desarrollo</div><div class="ph-sub">Ingresá un corte y la app calculará automáticamente la distribución por sucursal.</div></div>
+      <div class="panel-sub">Distribución automática por sucursal y canal, nutrida del Forecast</div>
+      <div class="tbl-wrap">
+        <div class="tbl-head">
+          <div class="tbl-title" id="stock-count">—</div>
+        </div>
+        <div class="filters" id="stock-filters"></div>
+        <div id="stock-view"></div>
+      </div>
     </div>
 
     <!-- CONFIG -->
