@@ -166,6 +166,10 @@ tbody td.mu{color:var(--mu);font-size:9px}
 .mtz-mat-empty{padding:16px;text-align:center;color:var(--mu);font-size:10px;border:1px dashed var(--bd);border-radius:9px}
 .btn-add-sm{background:transparent;border:1px dashed var(--ac);color:var(--ac);border-radius:7px;padding:5px 12px;font-size:9px;font-weight:500;letter-spacing:.5px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .18s}
 .btn-add-sm:hover{background:rgba(181,137,42,.08)}
+.art-thumb{width:34px;height:34px;border-radius:7px;object-fit:cover;border:1px solid var(--bd);display:block}
+.art-thumb-lg{width:64px;height:64px;border-radius:9px;object-fit:cover;border:1px solid var(--bd);display:block}
+.art-photo-box{display:flex;align-items:center;gap:12px;margin-top:6px}
+.art-photo-empty{width:64px;height:64px;border-radius:9px;border:1px dashed var(--bd);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--mu);background:var(--sf2)}
 
 /* SMALL MODAL (prod/mtz edit) */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:300;display:none;align-items:center;justify-content:center;padding:20px}
@@ -454,6 +458,16 @@ tbody td.mu{color:var(--mu);font-size:9px}
           <label>Colores y cantidades * <span style="color:var(--mu);font-size:8px">(hasta 5 colores)</span></label>
           <div id="dr-colores-list" style="margin-top:6px"></div>
           <button type="button" class="btn-add-sm" id="dr-add-color-btn" onclick="addDrawerColor()" style="margin-top:6px">+ Agregar color</button>
+        </div>
+        <div class="field full">
+          <label>Foto del artículo</label>
+          <div class="art-photo-box">
+            <div id="dr-foto-preview"></div>
+            <div>
+              <input type="file" accept="image/*" id="dr-foto-input" onchange="onDrawerFotoChange(event)">
+              <button type="button" class="btn-add-sm" id="dr-foto-remove" style="display:none;margin-top:6px" onclick="removeDrawerFoto()">Quitar foto</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -812,6 +826,7 @@ function getDrawerColors(){
     cant:parseFloat(document.getElementById(`dr-c-cant-${i}`)?.value)||0,
   })).filter(c=>c.color||c.cant>0);
 }
+let DR_FOTO='';
 function openDrawer(id){
   const r=id?(getData()||[]).find(x=>x.id===id):null;
   sV('dr-id',r?.id||'');
@@ -819,9 +834,49 @@ function openDrawer(id){
   sV('dr-codigo',r?.codigo||'');sV('dr-ingac',r?.ingAcord||'');
   DR_COLORES=(r?.colores&&r.colores.length)?r.colores.map(c=>({...c})):[{color:r?.color||'',cant:r?.cant||0}];
   renderDrawerColors();
+  DR_FOTO=r?.foto||'';
+  document.getElementById('dr-foto-input').value='';
+  renderDrawerFoto();
   document.getElementById('drawer-title').textContent=r?`Editar — ${r.nombre}`:'Nuevo artículo';
   document.getElementById('drawer-overlay').classList.add('open');
   document.getElementById('drawer').classList.add('open');
+}
+function renderDrawerFoto(){
+  const prev=document.getElementById('dr-foto-preview');
+  const rmBtn=document.getElementById('dr-foto-remove');
+  if(DR_FOTO){
+    prev.innerHTML=`<img src="${DR_FOTO}" class="art-photo-empty art-thumb-lg" style="border-style:solid">`;
+    rmBtn.style.display='';
+  }else{
+    prev.innerHTML=`<div class="art-photo-empty">📷</div>`;
+    rmBtn.style.display='none';
+  }
+}
+function onDrawerFotoChange(ev){
+  const file=ev.target.files&&ev.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    const img=new Image();
+    img.onload=()=>{
+      const maxW=400;
+      const scale=Math.min(1,maxW/img.width);
+      const canvas=document.createElement('canvas');
+      canvas.width=Math.round(img.width*scale);
+      canvas.height=Math.round(img.height*scale);
+      const ctx=canvas.getContext('2d');
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      DR_FOTO=canvas.toDataURL('image/jpeg',0.75);
+      renderDrawerFoto();
+    };
+    img.src=reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+function removeDrawerFoto(){
+  DR_FOTO='';
+  document.getElementById('dr-foto-input').value='';
+  renderDrawerFoto();
 }
 function closeDrawer(){
   document.getElementById('drawer-overlay').classList.remove('open');
@@ -839,7 +894,7 @@ function saveDrawer(){
   const row={
     id:id?parseInt(id):nextId(),
     nombre,mes:gV('dr-mes'),linea:gV('dr-linea'),
-    cant,color,colores,codigo:gV('dr-codigo'),
+    cant,color,colores,codigo:gV('dr-codigo'),foto:DR_FOTO,
     marca:orig?.marca||'TW',etapa:orig?.etapa||'',qreal:orig?.qreal||0,
     ficha:orig?.ficha||'PENDIENTE',mp:orig?.mp||'PENDIENTE',
     ubic:orig?.ubic||'',precio:orig?.precio||0,
@@ -1090,7 +1145,7 @@ function toggleMtzRow(id){if(MTZ_OPEN.has(id))MTZ_OPEN.delete(id);else MTZ_OPEN.
 function matRowHtml(r){
   const mats=r.materiales||[];
   const sumTotal=mats.reduce((a,m)=>a+(m.total||0),0);
-  return`<tr class="mtz-detail-row${MTZ_OPEN.has(r.id)?' open':''}"><td colspan="14">
+  return`<tr class="mtz-detail-row${MTZ_OPEN.has(r.id)?' open':''}"><td colspan="15">
     <div class="mtz-detail">
       <div class="mtz-detail-hd">
         <span class="mtz-detail-title">Componentes / Materia prima · ${r.nombre}${r.color?' · '+r.color:''}</span>
@@ -1137,13 +1192,14 @@ function renderMtzView(){
   const el=document.getElementById('mtz-view');
   if(!rows.length){el.innerHTML='<div class="empty">🔍 Sin resultados</div>';return;}
   el.innerHTML=`<div class="tbl-scroll"><table style="min-width:1080px">
-    <thead><tr><th></th><th>Mes</th><th>Línea</th><th>Código</th><th>Artículo</th><th>Color</th>
+    <thead><tr><th></th><th></th><th>Mes</th><th>Línea</th><th>Código</th><th>Artículo</th><th>Color</th>
     <th class="r">Cant</th><th class="r">Q Real</th><th>Fecha ingreso</th><th>Ficha</th><th>Compra</th><th>MP</th><th class="r">Total $</th><th></th></tr></thead>
     <tbody>${rows.map(r=>{
       const mats=r.materiales||[];
       const total=mats.length?mats.reduce((a,m)=>a+(m.total||0),0):(r.total||0);
       return`<tr class="mtz-row${MTZ_OPEN.has(r.id)?' open':''}" onclick="toggleMtzRow(${r.id})">
       <td><span class="mtz-chevron">▶</span></td>
+      <td>${r.foto?`<img src="${r.foto}" class="art-thumb">`:''}</td>
       <td class="mu">${r.mes||''}</td><td>${lineaBadge(r.linea)}</td>
       <td class="mu">${r.codigo||''}</td>
       <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${r.nombre}">${r.nombre}${mats.length?` <span class="mu">· ${mats.length} comp.</span>`:''}</td>
@@ -1575,6 +1631,7 @@ function renderForecastView(){
   // column widths: 4 fixed + 3 prices + 3 MU + %col + 7 qty + total + 7 val + valTotal + preCostoTotal
   el.innerHTML=`<div class="tbl-scroll"><table style="min-width:2100px;font-size:9px">
     <colgroup>
+      <col style="min-width:48px">
       <col style="min-width:70px"><col style="min-width:160px"><col style="min-width:80px"><col style="min-width:70px">
       <col style="min-width:72px"><col style="min-width:72px"><col style="min-width:72px">
       <col style="min-width:60px"><col style="min-width:60px"><col style="min-width:60px">
@@ -1586,6 +1643,7 @@ function renderForecastView(){
     </colgroup>
     <thead>
       <tr>
+        <th></th>
         <th colspan="4" style="text-align:left">ARTÍCULO</th>
         <th colspan="3" style="text-align:center;background:rgba(124,58,237,.07)">PRECIOS</th>
         <th colspan="3" style="text-align:center;background:rgba(217,119,6,.07)">MARK-UPS</th>
@@ -1597,6 +1655,7 @@ function renderForecastView(){
         <th style="background:rgba(217,119,6,.07)">PRE COSTO TOTAL</th>
       </tr>
       <tr>
+        <th>FOTO</th>
         <th>TIPOLOGÍA</th><th>ARTÍCULO</th><th>COLOR</th><th>CURVA</th>
         <th style="background:rgba(124,58,237,.05)">PRE COSTO</th>
         <th style="background:rgba(124,58,237,.05)">P. MAYORISTA</th>
@@ -1616,6 +1675,7 @@ function renderForecastView(){
       const isFirst=ci===0;
       const rowBg=!isFirst?'background:rgba(0,0,0,.018)':'';
       return`<tr style="${rowBg}">
+        <td>${isFirst&&r.foto?`<img src="${r.foto}" class="art-thumb">`:''}</td>
         <td>${isFirst?lineaBadge(r.linea):''}</td>
         <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;${isFirst?'font-weight:500':'color:var(--mu);font-size:9px;padding-left:18px'}" title="${r.nombre}">${isFirst?r.nombre:`↳ ${r.nombre}`}</td>
         <td class="mu">${clr.color||''}</td>
@@ -1635,7 +1695,7 @@ function renderForecastView(){
       </tr>`;
     }).join('')}</tbody>
     <tfoot class="fc-tfoot"><tr>
-      <td colspan="11" class="r" style="letter-spacing:.8px;text-transform:uppercase;font-size:8px;color:var(--mu)">TOTALES</td>
+      <td colspan="12" class="r" style="letter-spacing:.8px;text-transform:uppercase;font-size:8px;color:var(--mu)">TOTALES</td>
       ${FC_CHANNELS.map(c=>`<td class="r">${fChanTotals[c.key]||''}</td>`).join('')}
       <td class="r" style="background:rgba(37,99,235,.12);font-weight:700">${fTotal||''}</td>
       ${FC_CHANNELS.map(c=>`<td class="r" style="color:var(--gn)">${fChanTotals[c.vKey]?fmtV(fChanTotals[c.vKey]):''}</td>`).join('')}
