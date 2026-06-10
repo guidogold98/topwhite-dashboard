@@ -920,7 +920,9 @@ function saveDrawer(){
   };
   let rows=getData()||[];
   if(id)rows=rows.map(r=>r.id===parseInt(id)?row:r);else rows.push(row);
-  setData(rows);closeDrawer();
+  setData(rows);
+  if(id&&row.materiales.length)recalcArticleMats(row.id);
+  closeDrawer();
   ['prod','mtz','costos','forecast','stock'].forEach(p=>{
     if(document.getElementById('panel-'+p)?.classList.contains('active')){
       if(p==='prod')renderProd();else if(p==='mtz')renderMtz();
@@ -967,7 +969,7 @@ function renderProdView(){
       <td><span class="mtz-chevron">▶</span></td>
       <td>${lineaBadge(r.linea)}</td><td class="mu">${r.codigo||''}</td>
       <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis" title="${r.nombre}">${r.nombre}</td>
-      <td class="r">${fmtN(r.cant||0)}</td>
+      <td class="r">${fmtN(getArticleEffectiveCant(r))}</td>
       <td class="mu">${r.cortePlan||''}</td>
       <td style="font-size:9px;max-width:170px">
         ${!procs.length?'<span class="mu">Sin procesos cargados</span>':
@@ -1170,8 +1172,11 @@ function matRowHtml(r){
         <th class="r">Q real mts</th><th class="r">Cons.real</th><th class="r">Costo/pr (auto)</th><th class="r">Total a pagar (auto)</th><th style="text-align:center">Comprado</th><th></th></tr></thead>
         <tbody>${mats.map(m=>{
           const colores=r.colores&&r.colores.length?r.colores:[{color:r.color||'',cant:r.cant||0}];
-          const clr=colores[m.colorIdx??0];
-          const colorLabel=clr?`${clr.color||'—'} <span style="color:var(--mu)">(${clr.cant||0}u)</span>`:'—';
+          const ci=m.colorIdx??0;
+          const clr=colores[ci];
+          const effCant=getEffectiveCant(r,ci);
+          const fcSet=getFcQtyTotal(r.id,ci)>0;
+          const colorLabel=clr?`${clr.color||'—'} <span style="color:var(--mu)">(${effCant}u${fcSet?' · forecast':' · plan'})</span>`:'—';
           return`<tr class="${m.comprado?'row-ingresado':''}">
           <td><span class="color-chip" style="background:rgba(181,137,42,.08);border-color:rgba(181,137,42,.2)">${colorLabel}</span></td>
           <td><span class="badge" style="background:rgba(124,58,237,.1);color:var(--pu)">${m.tipo||'—'}</span></td>
@@ -1209,6 +1214,8 @@ function renderMtzView(){
     <tbody>${rows.map(r=>{
       const mats=r.materiales||[];
       const total=mats.length?mats.reduce((a,m)=>a+(m.total||0),0):(r.total||0);
+      const effCant=getArticleEffectiveCant(r);
+      const cantDiff=effCant!==(r.cant||0);
       return`<tr class="mtz-row${MTZ_OPEN.has(r.id)?' open':''}" onclick="toggleMtzRow(${r.id})">
       <td><span class="mtz-chevron">▶</span></td>
       <td>${r.foto?`<img src="${r.foto}" class="art-thumb">`:''}</td>
@@ -1216,7 +1223,7 @@ function renderMtzView(){
       <td class="mu">${r.codigo||''}</td>
       <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${r.nombre}">${r.nombre}${mats.length?` <span class="mu">· ${mats.length} comp.</span>`:''}</td>
       <td class="mu">${r.color||''}</td>
-      <td class="r">${r.cant||0}</td><td class="r mu">${r.qreal||0}</td>
+      <td class="r">${effCant}${cantDiff?` <span class="mu" style="font-size:8px" title="Plan original: ${r.cant||0}">(FC)</span>`:''}</td><td class="r mu">${r.qreal||0}</td>
       <td class="mu">${r.ingAcord||r.planificado||''}</td>
       <td>${okBadge(r.ficha)}</td><td>${okBadge(r.compra)}</td><td>${okBadge(r.mp)}</td>
       <td class="r" style="color:var(--ac);font-weight:500">${total?fmtV(total):''}</td>
@@ -1314,7 +1321,7 @@ function calcMatTotal(){
   let ci=0;
   if(matId){ci=parseInt(gV('mat-coloridx'))||0;}
   else{const sel=getSelectedColorIndices(colores);ci=sel.length?sel[0]:0;}
-  const cantArt=colores[ci]?.cant||0;
+  const cantArt=getEffectiveCant(r,ci);
   const consumo=parseFloat(gV('mat-consumo'))||0;
   const rinde=parseFloat(gV('mat-rinde'))||0;
   const precio=parseFloat(gV('mat-precio'))||0;
@@ -1402,7 +1409,7 @@ function saveMatModal(){
   if(matId){
     // edit: update single item
     const colorIdx=parseInt(gV('mat-coloridx'))||0;
-    const cantArt=colores[colorIdx]?.cant||0;
+    const cantArt=getEffectiveCant(r,colorIdx);
     const cantmp=+(cantArt*consxrinde).toFixed(2);
     const costo=+(consxrinde*precio).toFixed(2);
     const orig=mats.find(m=>m.id===matId);
@@ -1414,7 +1421,7 @@ function saveMatModal(){
     // compute next id starting point
     let nid=(mats.length?Math.max(...mats.map(m=>m.id||0)):0)+1;
     selectedCIs.forEach(ci=>{
-      const cantArt=colores[ci]?.cant||0;
+      const cantArt=getEffectiveCant(r,ci);
       const cantmp=+(cantArt*consxrinde).toFixed(2);
       const costo=+(consxrinde*precio).toFixed(2);
       mats.push({...baseItem,id:nid++,colorIdx:ci,cantmp,costo,total:Math.round(cantmp*precio),comprado:false});
@@ -1507,7 +1514,7 @@ function renderCostosView(){
         <td class="mu">${r.mes||''}</td><td>${lineaBadge(r.linea)}</td>
         <td class="mu">${r.codigo||''}</td>
         <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${r.nombre}">${r.nombre}</td>
-        <td class="r">${r.cant||0}</td>
+        <td class="r">${getArticleEffectiveCant(r)}</td>
         <td class="r" style="color:var(--or)">${costoUnit?fmtV(costoUnit):'—'}</td>
         <td class="r" style="color:var(--ac);font-weight:500">${total?fmtV(total):'—'}</td>
         <td class="r" style="color:var(--bl)">${r.precio?fmtV(r.precio):'—'}</td>
@@ -1578,6 +1585,16 @@ function saveFcColorField(id,ci,field,rawVal){
   const f=getFc();const k=`${id}_${ci}`;
   f[k]={...f[k]||{},[field]:parseFloat(rawVal)||0};
   setFc(f);
+  if(FC_CHANNELS.some(ch=>ch.key===field)){
+    recalcArticleMats(id);
+    ['mtz','costos','proveedores','stock','prod'].forEach(p=>{
+      if(document.getElementById('panel-'+p)?.classList.contains('active')){
+        if(p==='mtz')renderMtz();else if(p==='costos')renderCostos();
+        else if(p==='proveedores')renderProveedores();else if(p==='stock')renderStock();
+        else if(p==='prod')renderProd();
+      }
+    });
+  }
 }
 function saveFcField(id,field,rawVal){
   const artFields=['curva','pMay','pvp','pctColor'];
@@ -1593,6 +1610,35 @@ const FC_CHANNELS=[
   {key:'qLocN1',label:'Loc. Nuevo 1',price:'pvp', vKey:'vLocN1',vLabel:'Val. Loc.Nvo1 ($)'},
 ];
 let FF={mes:'ALL',linea:'ALL'};
+// Cantidad "real" de un color: si Comercial cargó cantidades por canal en el Forecast,
+// esa suma manda; si no, se usa la cantidad planificada al crear el artículo.
+function getFcQtyTotal(id,ci){
+  const c=getFcColor(id,ci);
+  return FC_CHANNELS.reduce((s,ch)=>s+(c[ch.key]||0),0);
+}
+function getEffectiveCant(r,ci){
+  const colores=(r.colores&&r.colores.length)?r.colores:[{color:r.color||'',cant:r.cant||0}];
+  const fcQty=getFcQtyTotal(r.id,ci);
+  return fcQty>0?fcQty:(colores[ci]?.cant||0);
+}
+function getArticleEffectiveCant(r){
+  const colores=(r.colores&&r.colores.length)?r.colores:[{color:r.color||'',cant:r.cant||0}];
+  return colores.reduce((s,_,ci)=>s+getEffectiveCant(r,ci),0);
+}
+// Recalcula cantmp/costo/total de los componentes de un artículo según las
+// cantidades efectivas (Forecast si existen, planificadas si no).
+function recalcArticleMats(articleId){
+  const rows=getData()||[];
+  const r=rows.find(x=>x.id===articleId);if(!r)return;
+  const mats=(r.materiales||[]).map(m=>{
+    const consxrinde=m.rinde?(m.consumo/m.rinde):0;
+    const cantArt=getEffectiveCant(r,m.colorIdx??0);
+    const cantmp=+(cantArt*consxrinde).toFixed(2);
+    const costo=+(consxrinde*(m.precio||0)).toFixed(2);
+    return{...m,cantmp,costo,total:Math.round(cantmp*(m.precio||0))};
+  });
+  setData(rows.map(x=>x.id!==articleId?x:syncCompraFromMats({...x,materiales:mats})));
+}
 function calcFcRow(r,ci=0){
   const d=getFcColorData(r.id,ci);
   const preCosto=articleCostUnit(r);
