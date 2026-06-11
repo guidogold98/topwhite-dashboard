@@ -300,6 +300,7 @@ tbody td.mu{color:var(--mu);font-size:9px}
           <div class="tbl-actions">
             <button class="btn-tog active" id="btn-tv" onclick="setProdView('table')">📋 Tabla</button>
             <button class="btn-tog" id="btn-gv" onclick="setProdView('gantt')">📊 Gantt</button>
+            <button class="btn-tog" onclick="exportPanelCSV('prod-view','produccion.csv')">⬇ Descargar Sheet</button>
           </div>
         </div>
         <div class="filters" id="prod-filters"></div>
@@ -315,6 +316,7 @@ tbody td.mu{color:var(--mu);font-size:9px}
         <div class="tbl-head">
           <div class="tbl-title" id="mtz-count">—</div>
           <div class="tbl-actions">
+            <button class="btn-tog" onclick="exportPanelCSV('mtz-view','matriz.csv')">⬇ Descargar Sheet</button>
             <button class="btn-add" onclick="openDrawer(null)">+ Nuevo artículo</button>
           </div>
         </div>
@@ -331,6 +333,7 @@ tbody td.mu{color:var(--mu);font-size:9px}
         <div class="tbl-head">
           <div class="tbl-title" id="prov-count">—</div>
           <div class="tbl-actions">
+            <button class="btn-tog" onclick="exportPanelCSV('prov-view','proveedores.csv')">⬇ Descargar Sheet</button>
             <button class="btn-add" onclick="openProvModal(null)">+ Nuevo proveedor</button>
           </div>
         </div>
@@ -346,6 +349,7 @@ tbody td.mu{color:var(--mu);font-size:9px}
             <select class="flt" id="oc-prov-sel" onchange="renderOCSection(this.value)">
               <option value="">— seleccioná un proveedor —</option>
             </select>
+            <button class="btn-tog" onclick="exportPanelCSV('oc-section','orden_compra.csv')">⬇ Descargar Sheet</button>
           </div>
         </div>
         <div id="oc-section"><div class="empty" style="padding:28px 20px;font-size:10px">Seleccioná un proveedor para ver sus materiales pendientes de compra</div></div>
@@ -363,6 +367,9 @@ tbody td.mu{color:var(--mu);font-size:9px}
       <div class="tbl-wrap">
         <div class="tbl-head">
           <div class="tbl-title" id="costos-count">—</div>
+          <div class="tbl-actions">
+            <button class="btn-tog" onclick="exportPanelCSV('costos-view','costos.csv')">⬇ Descargar Sheet</button>
+          </div>
         </div>
         <div class="filters" id="costos-filters"></div>
         <div id="costos-view"></div>
@@ -370,6 +377,9 @@ tbody td.mu{color:var(--mu);font-size:9px}
       <div class="tbl-wrap" style="margin-top:18px">
         <div class="tbl-head">
           <div class="tbl-title">💵 Cashflow proyectado por proveedor</div>
+          <div class="tbl-actions">
+            <button class="btn-tog" onclick="exportPanelCSV('cashflow-view','cashflow.csv')">⬇ Descargar Sheet</button>
+          </div>
         </div>
         <div class="panel-sub" style="margin:-4px 0 12px">Total a pagar = Σ (costo del componente × cantidad del artículo) · Fecha de pago = fecha de ingreso del artículo + plazo del proveedor</div>
         <div id="cashflow-view"></div>
@@ -383,6 +393,9 @@ tbody td.mu{color:var(--mu);font-size:9px}
       <div class="tbl-wrap">
         <div class="tbl-head">
           <div class="tbl-title" id="fc-count">—</div>
+          <div class="tbl-actions">
+            <button class="btn-tog" onclick="exportPanelCSV('fc-view','forecast.csv')">⬇ Descargar Sheet</button>
+          </div>
         </div>
         <div class="filters" id="fc-filters"></div>
         <div id="fc-view"></div>
@@ -403,6 +416,9 @@ tbody td.mu{color:var(--mu);font-size:9px}
       <div class="tbl-wrap">
         <div class="tbl-head">
           <div class="tbl-title" id="stock-count">—</div>
+          <div class="tbl-actions">
+            <button class="btn-tog" onclick="exportPanelCSV('stock-view','division_stock.csv')">⬇ Descargar Sheet</button>
+          </div>
         </div>
         <div class="filters" id="stock-filters"></div>
         <div id="stock-view"></div>
@@ -2082,6 +2098,46 @@ function printOC(){
 }
 // ── CONFIG ────────────────────────────────────────────────────────
 const RDESC={admin:'Acceso completo',produccion:'Producción + Cortes + Stock',producto:'Creación + Matriz + Cortes',compras:'Matriz + Stock',deposito:'Solo División de Stock'};
+// ── EXPORTAR A CSV (Google Sheets / Excel) ────────────────────────
+function csvCell(v){
+  v=v==null?'':String(v);
+  if(/[",\n;]/.test(v))v='"'+v.replace(/"/g,'""')+'"';
+  return v;
+}
+function tableToCSVRows(table){
+  const rows=[];
+  const theadTrs=table.querySelectorAll('thead tr');
+  if(theadTrs.length)rows.push([...theadTrs[theadTrs.length-1].children].map(th=>th.textContent.trim()));
+  table.querySelectorAll('tbody > tr').forEach(tr=>{
+    if(tr.classList.contains('mtz-detail-row'))return;
+    rows.push([...tr.children].map(td=>td.textContent.trim().replace(/\s+/g,' ')));
+  });
+  const tfootTr=table.querySelector('tfoot tr');
+  if(tfootTr)rows.push([...tfootTr.children].map(td=>td.textContent.trim().replace(/\s+/g,' ')));
+  return rows;
+}
+function downloadCSV(filename,csv){
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();a.remove();
+  URL.revokeObjectURL(url);
+}
+function exportPanelCSV(containerId,filename){
+  const container=document.getElementById(containerId);
+  const tables=container?container.querySelectorAll('table'):[];
+  if(!tables.length){toast('No hay datos para exportar','var(--rd)');return;}
+  let allRows=[];
+  tables.forEach((t,i)=>{
+    if(i>0)allRows.push([]);
+    const section=t.closest('div')?.previousElementSibling;
+    if(section&&section.textContent.trim())allRows.push([section.textContent.trim().replace(/\s+/g,' ')]);
+    allRows=allRows.concat(tableToCSVRows(t));
+  });
+  const csv=allRows.map(r=>r.map(csvCell).join(',')).join('\r\n');
+  downloadCSV(filename,csv);
+  toast('Descarga lista ✓ — abrí el archivo con Google Sheets o Excel');
+}
 function renderCfg(){
   document.getElementById('cfg-users').innerHTML=USERS.map(u=>`<tr><td>${u.name}</td><td class="mu">${u.username}</td><td><span class="badge" style="background:rgba(181,137,42,.1);color:var(--ac)">${u.role}</span></td><td class="mu" style="font-size:9px">${RDESC[u.role]||u.role}</td></tr>`).join('');
 }
