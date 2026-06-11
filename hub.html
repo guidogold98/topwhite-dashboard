@@ -422,8 +422,14 @@ tbody td.mu{color:var(--mu);font-size:9px}
       </div>
       <div class="tbl-wrap">
         <div class="tbl-head"><div class="tbl-title">Datos del sistema</div></div>
-        <div style="padding:16px 20px;display:flex;gap:10px;flex-wrap:wrap">
+        <div style="padding:16px 20px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <button class="btn-add" onclick="exportData()">⬇ Exportar backup (.json)</button>
+          <input type="file" accept="application/json" id="import-file-input" style="display:none" onchange="importData(event)">
+          <button class="btn-cancel" onclick="document.getElementById('import-file-input').click()">⬆ Importar backup</button>
           <button class="btn-cancel" onclick="resetData()">🔄 Resetear todos los datos de prueba</button>
+        </div>
+        <div style="padding:0 20px 16px;font-size:10px;color:var(--mu);line-height:1.6">
+          💡 Toda la información se guarda en este navegador (localStorage). Si limpiás el caché, cambiás de PC o de navegador, <b>se pierde</b> salvo que tengas un backup. Te recomendamos exportar un backup periódicamente y guardarlo en Drive/Mail.
         </div>
       </div>
     </div>
@@ -2083,6 +2089,36 @@ function resetData(){
   if(!confirm('¿Resetear todos los datos de prueba?'))return;
   localStorage.removeItem('tw_hub_articles');localStorage.removeItem('tw_hub_nid');
   initData();toast('Datos reseteados','var(--or)');
+}
+const BACKUP_KEYS=['tw_hub_articles','tw_hub_fc','tw_hub_proveedores','tw_hub_matlib','tw_hub_nid','tw_hub_ver'];
+function exportData(){
+  const data={};
+  BACKUP_KEYS.forEach(k=>{const v=localStorage.getItem(k);if(v!=null)data[k]=v;});
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const ts=new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
+  a.href=url;a.download=`topwhite-hub-backup-${ts}.json`;
+  document.body.appendChild(a);a.click();a.remove();
+  URL.revokeObjectURL(url);
+  toast('Backup descargado ✓');
+}
+function importData(ev){
+  const file=ev.target.files&&ev.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    let data;
+    try{data=JSON.parse(reader.result);}catch{toast('Archivo inválido','var(--rd)');return;}
+    if(!confirm('Esto va a reemplazar TODOS los datos actuales (artículos, forecast, proveedores, materiales) por los del backup. ¿Continuar?'))return;
+    BACKUP_KEYS.forEach(k=>{
+      if(data[k]!=null)localStorage.setItem(k,data[k]);else localStorage.removeItem(k);
+    });
+    toast('Backup importado ✓ recargando…');
+    setTimeout(()=>location.reload(),800);
+  };
+  reader.readAsText(file);
+  ev.target.value='';
 }
 
 // ── MODAL / DRAWER CLOSE ──────────────────────────────────────────
