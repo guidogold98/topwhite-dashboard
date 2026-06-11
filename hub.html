@@ -1589,7 +1589,7 @@ function renderCashflow(){
 function getFc(){try{return JSON.parse(localStorage.getItem('tw_hub_fc')||'{}');}catch{return{};}}
 function setFc(v){localStorage.setItem('tw_hub_fc',JSON.stringify(v));}
 function getFcArt(id){return getFc()[String(id)]||{};}
-function getFcColor(id,ci){const f=getFc();return f[`${id}_${ci}`]||(ci===0?f[String(id)]:{});}
+function getFcColor(id,ci){const f=getFc();return f[`${id}_${ci}`]||(ci===0?(f[String(id)]||{}):{});}
 function getFcColorData(id,ci){
   const a=getFcArt(id),c=getFcColor(id,ci);
   return{curva:a.curva||'',pMay:a.pMay||0,pvp:a.pvp||0,pctColor:a.pctColor||0,
