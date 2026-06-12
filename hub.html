@@ -209,6 +209,16 @@ tbody td.mu{color:var(--mu);font-size:9px}
 .up-date{color:var(--ac);font-weight:500;font-size:10px;flex-shrink:0}
 .up-days{font-size:9px;flex-shrink:0;min-width:54px;text-align:right}
 
+/* ACTIVIDADES */
+.activ-section{margin-bottom:14px}
+.activ-list{display:flex;flex-direction:column;gap:6px}
+.activ-item{display:flex;align-items:center;gap:12px;border:1px solid var(--bd);border-radius:9px;padding:10px 14px;background:var(--sf2);cursor:pointer;transition:border-color .15s}
+.activ-item:hover{border-color:var(--ac)}
+.activ-item.u-late{background:rgba(220,38,38,.06);border-color:rgba(220,38,38,.16)}
+.activ-item.u-today{background:rgba(217,119,6,.06);border-color:rgba(217,119,6,.18)}
+.activ-item.u-soon{background:rgba(37,99,235,.05);border-color:rgba(37,99,235,.14)}
+.activ-tag{flex-shrink:0;font-size:8px;font-weight:600;letter-spacing:1px;padding:3px 9px;border-radius:20px;border:1px solid currentColor;white-space:nowrap}
+
 /* EMPTY / PH */
 .empty{text-align:center;padding:50px 20px;color:var(--mu)}
 .ph{text-align:center;padding:70px 20px;color:var(--mu);background:var(--sf);border:1px solid var(--bd);border-radius:13px}
@@ -287,6 +297,14 @@ tbody td.mu{color:var(--mu);font-size:9px}
         <div class="chart-box"><div class="chart-title">⚠ Alertas de demora</div><div class="alert-list" id="dash-alerts"></div></div>
         <div class="chart-box"><div class="chart-title">📅 Próximos ingresos</div><div class="upcoming-list" id="dash-upcoming"></div></div>
       </div>
+    </div>
+
+    <!-- ACTIVIDADES -->
+    <div class="panel" id="panel-activ">
+      <div class="panel-title">Actividades de Hoy</div>
+      <div class="panel-sub">Agenda automática según tu rol · <span id="activ-date"></span></div>
+      <div class="kpi-row" id="activ-kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))"></div>
+      <div id="activ-view"></div>
     </div>
 
     <!-- CREACIÓN DE PRODUCTO -->
@@ -652,14 +670,15 @@ const USERS=[
   {id:5,name:'Depósito',username:'deposito',password:'dep123',role:'deposito'},
 ];
 const PERMS={
-  admin:      ['dash','prod','mtz','proveedores','costos','forecast','cortes','stock','cfg'],
-  produccion: ['dash','prod','cortes','stock'],
-  producto:   ['dash','mtz','forecast','cortes'],
-  compras:    ['dash','mtz','proveedores','costos','stock'],
-  deposito:   ['stock'],
+  admin:      ['dash','activ','prod','mtz','proveedores','costos','forecast','cortes','stock','cfg'],
+  produccion: ['dash','activ','prod','cortes','stock'],
+  producto:   ['dash','activ','mtz','forecast','cortes'],
+  compras:    ['dash','activ','mtz','proveedores','costos','stock'],
+  deposito:   ['activ','stock'],
 };
 const MENU=[
   {id:'dash',  icon:'🏠',label:'Dashboard'},
+  {id:'activ', icon:'✅',label:'Actividades'},
   {id:'prod',  icon:'📅',label:'Producción'},
   {id:'mtz',   icon:'📋',label:'Matriz'},
   {id:'proveedores',icon:'🤝',label:'Proveedores'},
@@ -697,6 +716,7 @@ function showPanel(id){
   const p=document.getElementById('panel-'+id);if(p)p.classList.add('active');
   const b=document.querySelector(`.sb-item[data-panel="${id}"]`);if(b)b.classList.add('active');
   if(id==='dash')renderDash();
+  if(id==='activ')renderActividades();
   if(id==='prod')renderProd();if(id==='mtz')renderMtz();if(id==='cfg')renderCfg();
   if(id==='proveedores')renderProveedores();if(id==='costos')renderCostos();
   if(id==='forecast')renderForecast();
@@ -837,6 +857,109 @@ function renderDash(){
   const up=document.getElementById('dash-upcoming');
   const upcoming=rows.filter(r=>r.ingAcord&&r.estado!=='ENTREGADO').map(r=>({...r,d:parseD(r.ingAcord)})).filter(r=>r.d).sort((a,b)=>a.d-b.d).slice(0,7);
   up.innerHTML=!upcoming.length?'<div style="font-size:11px;color:var(--mu)">Sin fechas próximas</div>':upcoming.map(r=>{const dd=diffD(r.d,TODAY);const c=dd<0?'var(--rd)':dd<=5?'var(--or)':'var(--gn)';return`<div class="up-item"><span class="up-name" title="${r.nombre}">${r.nombre}</span><span class="up-date">${r.ingAcord}</span><span class="up-days" style="color:${c}">${dd===0?'HOY':dd<0?Math.abs(dd)+'d atrás':'en '+dd+'d'}</span></div>`;}).join('');
+}
+
+// ── ACTIVIDADES (AGENDA AUTOMÁTICA) ──────────────────────────────
+// Cada categoría apunta a la pestaña donde el equipo puede resolver esa tarea.
+const ACT_CATS={
+  corte:   {label:'✂️ Cortes pendientes',  panel:'prod',     roles:['produccion','admin']},
+  taller:  {label:'🧵 Retiro de taller',    panel:'prod',     roles:['produccion','admin']},
+  ingreso: {label:'📦 Ingresos a depósito', panel:'stock',    roles:['produccion','deposito','compras','admin']},
+  forecast:{label:'📈 Forecast pendiente',  panel:'forecast', roles:['producto','admin']},
+  pago:    {label:'💵 Pagos a proveedores', panel:'costos',   roles:['compras','admin']},
+};
+// dias = diffD(TODAY,fecha): >0 atrasado, 0 hoy, <0 faltan -dias días
+function buildActivities(){
+  const rows=getData()||[];
+  const acts=[];
+  rows.forEach(r=>{
+    if(r.estado==='ENTREGADO')return;
+    const cantTxt=`${fmtN(getArticleEffectiveCant(r))} u.`;
+    if(r.cortePlan&&!r.corteReal){
+      const d=parseD(r.cortePlan);
+      if(d){const dias=diffD(TODAY,d);
+        if(dias>=-3)acts.push({cat:'corte',title:`Cortar tela — ${r.nombre}${r.color?' · '+r.color:''}`,sub:`${r.linea} · ${cantTxt} · Corte plan: ${r.cortePlan}`,dias});}
+    }
+    (r.procesos||[]).forEach(p=>{
+      if(!p.inicio||p.ingresado||p.estado==='ENTREGADO')return;
+      const fin=addWeeks(p.inicio,p.semanas);if(!fin)return;
+      const dias=diffD(TODAY,fin);
+      if(dias>=-3)acts.push({cat:'taller',title:`Retirar de taller — ${r.nombre} (${p.nombre})`,sub:`${p.taller||'Sin taller asignado'} · Fin estimado: ${fmtDM(fin)}`,dias});
+    });
+    if(r.ingAcord&&!r.ingresado){
+      const d=parseD(r.ingAcord);
+      if(d){const dias=diffD(TODAY,d);
+        if(dias>=-3)acts.push({cat:'ingreso',title:`Ingreso a depósito — ${r.nombre}`,sub:`${r.linea} · ${cantTxt} · Acordado: ${r.ingAcord}`,dias});}
+    }
+    if(r.cortePlan&&!r.corteReal){
+      const d=parseD(r.cortePlan);
+      if(d){const dias=diffD(TODAY,d);
+        if(dias>=-7){
+          const colores=(r.colores&&r.colores.length)?r.colores:[{color:r.color||'',cant:r.cant||0}];
+          colores.forEach((c,ci)=>{
+            if(getFcQtyTotal(r.id,ci)===0)acts.push({cat:'forecast',title:`Cargar forecast — ${r.nombre}${c.color?' · '+c.color:''}`,sub:`Corte plan: ${r.cortePlan} · planificado: ${fmtN(c.cant||0)} u.`,dias});
+          });
+        }
+      }
+    }
+  });
+  const byProv={};
+  rows.forEach(r=>{
+    if(r.estado==='ENTREGADO')return;
+    const fecha=parseD(r.ingAcord)||parseD(r.planificado);
+    (r.materiales||[]).forEach(m=>{
+      if(!m.prov||!m.total)return;
+      const key=m.prov.trim();
+      if(!byProv[key])byProv[key]={total:0,fechas:[]};
+      byProv[key].total+=Math.round(m.total||0);
+      if(fecha)byProv[key].fechas.push(fecha);
+    });
+  });
+  Object.entries(byProv).forEach(([prov,data])=>{
+    if(!data.fechas.length)return;
+    const plazo=findProv(prov)?.plazoDias||0;
+    const fechas=data.fechas.map(f=>new Date(f.getTime()+plazo*86400000)).sort((a,b)=>a-b);
+    const fechaPago=fechas[0],dias=diffD(TODAY,fechaPago);
+    if(dias>=-7)acts.push({cat:'pago',title:`Pago a ${prov}`,sub:`${fmtV(data.total)} · vence ${fmtDM(fechaPago)}`,dias});
+  });
+  return acts;
+}
+function activUrgency(dias){
+  if(dias>0)return{cls:'u-late',label:`ATRASADO ${dias}D`,color:'var(--rd)'};
+  if(dias===0)return{cls:'u-today',label:'HOY',color:'var(--or)'};
+  return{cls:'u-soon',label:`EN ${-dias}D`,color:'var(--bl)'};
+}
+function renderActividades(){
+  const role=CU.role;
+  const acts=buildActivities().filter(a=>ACT_CATS[a.cat].roles.includes(role));
+  document.getElementById('activ-date').textContent=`${TODAY.getDate()}/${TODAY.getMonth()+1}/${TODAY.getFullYear()}`;
+  const atrasadas=acts.filter(a=>a.dias>0).length;
+  const hoy=acts.filter(a=>a.dias===0).length;
+  const proximas=acts.filter(a=>a.dias<0).length;
+  document.getElementById('activ-kpis').innerHTML=`
+    <div class="kpi k-rd"><div class="kpi-label">Atrasadas</div><div class="kpi-val c-rd">${atrasadas}</div><div class="kpi-sub">requieren atención</div></div>
+    <div class="kpi k-or"><div class="kpi-label">Para hoy</div><div class="kpi-val c-or">${hoy}</div><div class="kpi-sub">vencen hoy</div></div>
+    <div class="kpi k-bl"><div class="kpi-label">Próximas</div><div class="kpi-val c-bl">${proximas}</div><div class="kpi-sub">en los próximos días</div></div>`;
+  const el=document.getElementById('activ-view');
+  const cats=Object.keys(ACT_CATS).filter(c=>ACT_CATS[c].roles.includes(role)&&acts.some(a=>a.cat===c));
+  if(!cats.length){el.innerHTML='<div class="empty">✅ No hay actividades pendientes para tu rol. ¡Buen trabajo!</div>';return;}
+  el.innerHTML=cats.map(c=>{
+    const cat=ACT_CATS[c];
+    const items=acts.filter(a=>a.cat===c).sort((a,b)=>b.dias-a.dias);
+    return`<div class="chart-box activ-section">
+      <div class="chart-title">${cat.label} (${items.length})</div>
+      <div class="activ-list">${items.map(a=>{
+        const u=activUrgency(a.dias);
+        return`<div class="activ-item ${u.cls}" onclick="showPanel('${cat.panel}')">
+          <div class="activ-tag" style="color:${u.color}">${u.label}</div>
+          <div style="flex:1;min-width:0">
+            <div class="alert-text">${a.title}</div>
+            <div class="alert-meta">${a.sub}</div>
+          </div>
+        </div>`;
+      }).join('')}</div>
+    </div>`;
+  }).join('');
 }
 
 // ── DRAWER ────────────────────────────────────────────────────────
